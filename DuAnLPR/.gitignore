@@ -1,0 +1,21 @@
+# Môi trường ảo
+venv/
+env_ancu/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Database files (ví dụ nếu dùng SQLite tạm)
+*.sqlite3
+db.sqlite3
+
+# PyCharm project files (có thể bỏ qua thư mục .idea hoàn toàn)
+.idea/
+
+# Thư mục media (chứa ảnh upload, thường không đưa lên Git)
+media/
+
+# Các file bí mật
+*.env
+local_settings.py

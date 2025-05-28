@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Kiểm Tra Biển Số Xe / Ghi Nhận Xe Vào</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
+        input[type="text"], button { padding: 10px; margin-top: 5px; margin-bottom: 15px; width: calc(100% - 22px); }
+        button { width: 100%; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+        .message { padding: 10px; margin-top: 15px; border-radius: 3px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+{% load tz %}
+    <div class="container">
+        <h1>Nhập Biển Số Xe (Hoặc Upload Ảnh) Để Ghi Nhận Xe Vào</h1>
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div>
+                <label for="bien_so">Nhập biển số xe (nếu không upload ảnh):</label>
+                <input type="text" id="bien_so" name="bien_so" value="{{ bien_so_da_nhap|default_if_none:'' }}" placeholder="Ví dụ: 29A1-12345">
+            </div>
+
+            <hr>
+
+            <div>
+                <label for="image_upload">Hoặc Upload ảnh biển số:</label>
+                <input type="file" id="image_upload" name="image_upload" accept="image/*">
+            </div>
+
+            <hr>
+            <button type="submit">Gửi Thông Tin</button>
+        </form>
+
+        {% if thong_bao_thanh_cong_text and thoi_gian_su_kien %}
+            <p class="message success">{{ thong_bao_thanh_cong_text }} {{ thoi_gian_su_kien|localtime|date:"Y-m-d H:i:s" }}</p>
+        {% elif thong_bao_thanh_cong_text %}
+            <p class="message success">{{ thong_bao_thanh_cong_text }}</p>
+        {% endif %}
+
+        {% if thong_bao_text and thoi_gian_su_kien %}
+            <p class="message info">{{ thong_bao_text }} {{ thoi_gian_su_kien|localtime|date:"Y-m-d H:i:s" }}</p>
+        {% elif thong_bao_text %}
+             <p class="message info">{{ thong_bao_text }}</p>
+        {% endif %}
+
+        {% if thong_bao_loi %}
+            <p class="message error">{{ thong_bao_loi }}</p>
+        {% endif %}
+
+        <hr>
+        <p><a href="{% url 'admin:index' %}">Đến trang Admin</a></p>
+        <p><a href="{% url 'parking_management:kiem_tra_bien_so' %}">Làm mới trang / Nhập biển số khác</a></p>
+    </div>
+</body>
+</html>
