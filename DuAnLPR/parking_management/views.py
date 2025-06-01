@@ -22,88 +22,127 @@ def kiem_tra_bien_so_view(request):
     }
 
     entry_vehicle_image_path_to_save = None  # Biến để lưu đường dẫn ảnh
+    entry_cropped_plate_image_path_to_save = None  # Thêm biến này
 
     if request.method == 'POST':
         bien_so_nhap_tay = request.POST.get('bien_so', '').strip().upper()
-        uploaded_image = request.FILES.get('image_upload')  # Lấy file ảnh upload
+        uploaded_image = request.FILES.get('image_upload')
 
-        bien_so_final = ""  # Biển số cuối cùng để xử lý
+        bien_so_final = ""
 
         if uploaded_image:
-            # Nếu có ảnh upload, ưu tiên xử lý ảnh
-            recognized_plate, saved_image_path = save_uploaded_image_and_recognize_plate(uploaded_image)
-            if recognized_plate and saved_image_path:
-                bien_so_final = recognized_plate.upper()  # Giả sử hàm trả về biển số, chuẩn hóa
-                entry_vehicle_image_path_to_save = saved_image_path
-                context['thong_bao_text'] = f"Ảnh đã được upload. Biển số nhận dạng (tạm thời): {bien_so_final}."
-            else:
-                context['thong_bao_loi'] = "Có lỗi khi xử lý ảnh upload."
+            # Hàm bây giờ trả về 3 giá trị
+            recognized_plate, saved_original_path, saved_cropped_path = save_uploaded_image_and_recognize_plate(
+                uploaded_image)
+
+            if recognized_plate and saved_original_path:  # Chỉ cần recognized_plate và ảnh gốc là đủ để tiếp tục
+                bien_so_final = recognized_plate.upper()
+                entry_vehicle_image_path_to_save = saved_original_path
+                if saved_cropped_path:  # Nếu có ảnh cắt
+                    entry_cropped_plate_image_path_to_save = saved_cropped_path
+
+                # Điều chỉnh thông báo để thân thiện hơn, không nhất thiết hiển thị biển số "giả"
+                if "LOI" in bien_so_final:
+                    context['thong_bao_loi'] = f"Xử lý ảnh: {bien_so_final}."
+                elif bien_so_final == "CHUA_NHAN_DANG":
+                    context['thong_bao_text'] = "Ảnh đã được upload, nhưng chưa nhận dạng được biển số từ ảnh."
+                elif bien_so_final == "DA_TIM_THAY_VUNG_BIEN_SO":  # Hoặc DA_TIM_THAY_VUNG_4_CANH
+                    context['thong_bao_text'] = f"Ảnh đã được upload, đã khoanh vùng được biển số (cần OCR)."
+                    # Ở đây, vì chưa có OCR, chúng ta có thể yêu cầu người dùng nhập tay biển số nếu muốn
+                    # hoặc dùng một giá trị tạm thời nếu không muốn chặn luồng.
+                    # Ví dụ: yêu cầu nhập tay nếu OCR thất bại
+                    # context['yeu_cau_nhap_tay_bien_so'] = True
+                    # context['thong_bao_loi'] = "Đã khoanh vùng biển số, vui lòng nhập ký tự biển số để xác nhận."
+                    # return render(request, 'parking_management/kiem_tra_bien_so.html', context)
+                    # Hoặc tạm thời, để test luồng, chúng ta vẫn tiếp tục với một biển số "đã xử lý"
+                    pass  # Để logic phía dưới tiếp tục với bien_so_final là "DA_TIM_THAY_VUNG_BIEN_SO"
+                else:  # Trường hợp OCR thành công (sau này)
+                    context['thong_bao_text'] = f"Ảnh đã được upload. Biển số nhận dạng: {bien_so_final}."
+
+            else:  # recognized_plate là None hoặc saved_original_path là None
+                context['thong_bao_loi'] = "Có lỗi nghiêm trọng khi xử lý hoặc lưu ảnh upload."
                 return render(request, 'parking_management/kiem_tra_bien_so.html', context)
+
         elif bien_so_nhap_tay:
-            # Nếu không có ảnh, dùng biển số nhập tay
             bien_so_final = bien_so_nhap_tay
         else:
             context['thong_bao_loi'] = "Vui lòng nhập biển số hoặc upload ảnh."
             return render(request, 'parking_management/kiem_tra_bien_so.html', context)
 
-        context['bien_so_da_nhap'] = bien_so_final  # Cập nhật để hiển thị lại trên form
+        context['bien_so_da_nhap'] = bien_so_final
 
-        if not bien_so_final:  # Nếu sau tất cả vẫn không có biển số
-            if not context['thong_bao_loi']:  # Tránh ghi đè lỗi đã có
-                context['thong_bao_loi'] = "Không xác định được biển số xe."
+        if not bien_so_final or "LOI" in bien_so_final.upper():
+            if not context['thong_bao_loi']:
+                context['thong_bao_loi'] = "Không xác định được biển số xe hợp lệ từ ảnh hoặc nhập tay."
             return render(request, 'parking_management/kiem_tra_bien_so.html', context)
 
-        # --- Phần logic kiểm tra xe và ghi nhận giữ nguyên như cũ, nhưng sử dụng bien_so_final ---
-        # --- và lưu entry_vehicle_image_path_to_save vào ParkingHistory ---
+        # --- Phần logic kiểm tra xe và ghi nhận ---
         try:
-            xe_tim_thay = Vehicle.objects.get(BienSoXe__iexact=bien_so_final)
-            khach_thue = xe_tim_thay.KhachThueID
-            context['xe'] = xe_tim_thay
-            context['khach_thue'] = khach_thue
+            # Nếu bien_so_final là "DA_TIM_THAY_VUNG_BIEN_SO", có thể bạn muốn tìm theo một cách khác
+            # hoặc yêu cầu nhập tay. Hiện tại, nó sẽ không tìm thấy trong Vehicle.objects.get
+            # Trừ khi bạn có xe với biển số là "DA_TIM_THAY_VUNG_BIEN_SO"
 
-            lich_su_dang_gui = ParkingHistory.objects.filter(
-                VehicleID=xe_tim_thay,
-                ExitTime__isnull=True,
-                Status='IN_YARD'
-            ).first()
+            # Để đơn giản, nếu bien_so_final không phải là một biển số thực sự mà là thông báo,
+            # ta sẽ coi như không tìm thấy xe khách thuê và xử lý như khách vãng lai với biển số này.
 
-            if lich_su_dang_gui:
-                context['thong_bao_text'] = (f"Xe {xe_tim_thay.BienSoXe} của khách thuê {khach_thue.HoVaTen} "
-                                             f"đang ở trong bãi. Vào lúc:")
-                context['thoi_gian_su_kien'] = lich_su_dang_gui.EntryTime
-            else:
-                lich_su_moi = ParkingHistory.objects.create(
-                    VehicleID=xe_tim_thay,
-                    ProcessedLicensePlateEntry=xe_tim_thay.BienSoXe,  # Hoặc bien_so_final
-                    EntryTime=timezone.now(),
-                    Status='IN_YARD',
-                    EntryVehicleImagePath=entry_vehicle_image_path_to_save  # LƯU ĐƯỜNG DẪN ẢNH
-                )
-                context['thong_bao_thanh_cong_text'] = (f"Đã ghi nhận xe {xe_tim_thay.BienSoXe} của khách thuê "
-                                                        f"{khach_thue.HoVaTen} vào bãi lúc:")
-                context['thoi_gian_su_kien'] = lich_su_moi.EntryTime
+            xe_khach_thue_tim_thay = None
+            if bien_so_final not in ["CHUA_NHAN_DANG", "DA_TIM_THAY_VUNG_BIEN_SO",
+                                     "LOI_KICH_THUOC_CAT"]:  # Giả sử đây là các thông báo
+                xe_khach_thue_tim_thay = Vehicle.objects.filter(BienSoXe__iexact=bien_so_final).first()
 
-        except Vehicle.DoesNotExist:
-            lich_su_vang_lai_dang_gui = ParkingHistory.objects.filter(
-                ProcessedLicensePlateEntry__iexact=bien_so_final,
-                VehicleID__isnull=True,
-                ExitTime__isnull=True,
-                Status='IN_YARD'
-            ).first()
+            if xe_khach_thue_tim_thay:
+                xe_tim_thay = xe_khach_thue_tim_thay
+                khach_thue = xe_tim_thay.KhachThueID
+                context['xe'] = xe_tim_thay
+                context['khach_thue'] = khach_thue
+                # ... (logic kiểm tra xe khách thuê đang trong bãi và ghi nhận như cũ) ...
+                # Khi tạo ParkingHistory, thêm:
+                # EntryCroppedPlateImagePath=entry_cropped_plate_image_path_to_save (nếu có)
+                lich_su_dang_gui = ParkingHistory.objects.filter(
+                    VehicleID=xe_tim_thay, ExitTime__isnull=True, Status='IN_YARD'
+                ).first()
+                if lich_su_dang_gui:
+                    # ... (thông báo xe đang trong bãi)
+                    context['thong_bao_text'] = (f"Xe {xe_tim_thay.BienSoXe} của khách thuê {khach_thue.HoVaTen} "
+                                                 f"đang ở trong bãi. Vào lúc:")
+                    context['thoi_gian_su_kien'] = lich_su_dang_gui.EntryTime
+                else:
+                    lich_su_moi = ParkingHistory.objects.create(
+                        VehicleID=xe_tim_thay,
+                        ProcessedLicensePlateEntry=bien_so_final,
+                        EntryTime=timezone.now(), Status='IN_YARD',
+                        EntryVehicleImagePath=entry_vehicle_image_path_to_save,
+                        EntryCroppedPlateImagePath=entry_cropped_plate_image_path_to_save  # Thêm dòng này
+                    )
+                    # ... (thông báo thành công)
+                    context['thong_bao_thanh_cong_text'] = (f"Đã ghi nhận xe {xe_tim_thay.BienSoXe} của khách thuê "
+                                                            f"{khach_thue.HoVaTen} vào bãi lúc:")
+                    context['thoi_gian_su_kien'] = lich_su_moi.EntryTime
 
-            if lich_su_vang_lai_dang_gui:
-                context['thong_bao_text'] = f"Xe khách vãng lai {bien_so_final} đang ở trong bãi. Vào lúc:"
-                context['thoi_gian_su_kien'] = lich_su_vang_lai_dang_gui.EntryTime
-            else:
-                lich_su_moi_vang_lai = ParkingHistory.objects.create(
-                    VehicleID=None,
-                    ProcessedLicensePlateEntry=bien_so_final,
-                    EntryTime=timezone.now(),
-                    Status='IN_YARD',
-                    EntryVehicleImagePath=entry_vehicle_image_path_to_save  # LƯU ĐƯỜNG DẪN ẢNH
-                )
-                context['thong_bao_thanh_cong_text'] = f"Đã ghi nhận xe khách vãng lai {bien_so_final} vào bãi lúc:"
-                context['thoi_gian_su_kien'] = lich_su_moi_vang_lai.EntryTime
+            else:  # Xử lý như khách vãng lai (hoặc xe khách thuê nhưng biển số từ ảnh chưa phải là biển số thật)
+                lich_su_vang_lai_dang_gui = ParkingHistory.objects.filter(
+                    ProcessedLicensePlateEntry__iexact=bien_so_final,
+                    VehicleID__isnull=True, ExitTime__isnull=True, Status='IN_YARD'
+                ).first()
+
+                if lich_su_vang_lai_dang_gui:
+                    # ... (thông báo xe vãng lai đang trong bãi)
+                    context['thong_bao_text'] = f"Xe khách vãng lai {bien_so_final} đang ở trong bãi. Vào lúc:"
+                    context['thoi_gian_su_kien'] = lich_su_vang_lai_dang_gui.EntryTime
+                else:
+                    lich_su_moi_vang_lai = ParkingHistory.objects.create(
+                        VehicleID=None, ProcessedLicensePlateEntry=bien_so_final,
+                        EntryTime=timezone.now(), Status='IN_YARD',
+                        EntryVehicleImagePath=entry_vehicle_image_path_to_save,
+                        EntryCroppedPlateImagePath=entry_cropped_plate_image_path_to_save  # Thêm dòng này
+                    )
+                    # ... (thông báo thành công)
+                    context['thong_bao_thanh_cong_text'] = f"Đã ghi nhận xe khách vãng lai {bien_so_final} vào bãi lúc:"
+                    context['thoi_gian_su_kien'] = lich_su_moi_vang_lai.EntryTime
+
+        except Vehicle.DoesNotExist:  # Khối except này có thể không cần thiết nữa nếu dùng filter().first()
+            # Xử lý như khách vãng lai (copy logic từ trên xuống nếu cần, nhưng đoạn code trên đã gộp)
+            pass
 
     return render(request, 'parking_management/kiem_tra_bien_so.html', context)
 
