@@ -127,10 +127,8 @@
                 <div class="navbar-end">
                     <div class="navbar-item">
                         {% if user.is_authenticated %}
-                            {# Link Admin Django cho desktop, chỉ hiển thị khi đã đăng nhập #}
-                            <a class="navbar-item is-hidden-touch" href="{% url 'admin:index' %}" target="_blank">
-                                Admin Django
-                            </a>
+
+
                             <div class="buttons">
                                 <span class="navbar-item">Xin chào, {{ user.username }}!</span>
                                 <a class="button is-light" href="{% url 'parking_management:logout_user' %}">

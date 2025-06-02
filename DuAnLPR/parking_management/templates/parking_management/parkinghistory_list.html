@@ -1,5 +1,5 @@
 {% extends "parking_management/base_user.html" %}
-{% load humanize tz %} {# Nạp cả humanize và tz #}
+{% load humanize tz %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -85,12 +85,6 @@
                                     {{ record.Status|default_if_none:"-" }}
                                 {% endif %}
                             </td>
-                            {# Hiển thị link ảnh nếu có và bạn muốn (cần cấu hình MEDIA_URL) #}
-                            {# <td>
-                                {% if record.EntryVehicleImagePath %}
-                                    <a href="{{ MEDIA_URL }}{{ record.EntryVehicleImagePath }}" target="_blank">Xem ảnh</a>
-                                {% endif %}
-                            </td> #}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -129,3 +123,5 @@
     </div>
 </section>
 {% endblock %}
+
+{# CÁC DÒNG CHÚ THÍCH RỖNG {# #} ĐÃ ĐƯỢC XÓA Ở ĐÂY NẾU CÓ #}
