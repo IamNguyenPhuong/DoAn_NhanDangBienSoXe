@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    {% load static %} {# Để tải các file static sau này nếu cần #}
+    <meta charset="UTF-8">
+    <title>Trang Chủ - Quản Lý Bãi Xe An Cư</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
+        header { background-color: #333; color: white; padding: 1em 0; text-align: center; }
+        nav ul { list-style-type: none; padding: 0; text-align: center; margin-top: 20px; }
+        nav ul li { display: inline; margin-right: 20px; }
+        nav ul li a { text-decoration: none; color: #333; font-weight: bold; padding: 10px 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 5px; }
+        nav ul li a:hover { background-color: #4CAF50; color: white; }
+        .container { width: 80%; margin: 20px auto; background-color: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .welcome-message { text-align: right; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Hệ Thống Quản Lý Bãi Xe Chung Cư An Cư</h1>
+    </header>
+    <div class="container">
+        {% if user.is_authenticated %}
+            <p class="welcome-message">Xin chào, <strong>{{ user.username }}</strong>! | <a href="{% url 'parking_management:logout_user' %}">Đăng xuất</a></p>
+        {% else %}
+            <p class="welcome-message"><a href="{% url 'parking_management:login_user' %}">Đăng nhập</a></p>
+        {% endif %}
+
+        <h2>Chức năng chính:</h2>
+        <nav>
+                <ul>
+                    {% if user.is_authenticated %}
+                        <li><a href="{% url 'parking_management:kiem_tra_bien_so' %}">Ghi Nhận Xe Vào</a></li>
+                        <li><a href="{% url 'parking_management:xe_ra_khoi_bai' %}">Xử Lý Xe Ra</a></li>
+                        <li><a href="{% url 'parking_management:khachthue_list' %}">Quản Lý Dữ liệu</a></li>
+                        <li><a href="{% url 'admin:index' %}" target="_blank">Truy cập Admin (Quản lý sâu)</a></li>
+                    {% else %}
+                        <li>Vui lòng đăng nhập để sử dụng các chức năng.</li>
+                    {% endif %}
+                </ul>
+            </nav>
+    </div>
+</body>
+</html>

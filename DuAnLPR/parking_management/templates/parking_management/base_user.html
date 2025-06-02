@@ -1,0 +1,185 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    {% load static %}
+{% load humanize %} {# Nạp humanize để dùng intcomma và các bộ lọc khác #}
+{% load tz %}    {# Nạp tz để dùng localtime, date nếu cần trong base hoặc các template con #}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Quản Lý Bãi Xe An Cư{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: #f7f7f7; /* Một màu nền nhẹ nhàng cho body */
+        }
+        .site-content {
+            flex: 1;
+            padding-top: 2rem; /* Thêm padding cho nội dung chính */
+            padding-bottom: 2rem;
+        }
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Thêm bóng đổ cho navbar */
+        }
+        .navbar-item img.logo {
+            max-height: 3.75rem; /* Kích thước logo, bạn có thể điều chỉnh */
+        }
+        .footer {
+            background-color: #363636; /* Màu tối hơn cho footer */
+            color: #fff;
+            padding: 2rem 1.5rem 2rem; /* Giảm padding một chút */
+        }
+        .footer a {
+            color: #48c78e; /* Màu link trong footer */
+        }
+        .footer a:hover {
+            color: #fff;
+        }
+        .section {
+            padding-top: 1.5rem; /* Giữ nguyên hoặc điều chỉnh padding cho section */
+            padding-bottom: 1.5rem;
+        }
+        /* Thêm style cho menu active (nếu muốn) */
+        .navbar-item.is-active {
+            background-color: #48c78e; /* Màu xanh lá của Bulma */
+            color: white !important;
+        }
+        .navbar-dropdown .navbar-item:hover {
+            background-color: #f5f5f5; /* Màu hover cho item trong dropdown */
+        }
+    </style>
+    {% block extra_head %}{% endblock %} {# Khối để thêm CSS hoặc JS riêng cho từng trang con #}
+</head>
+<body>
+    <header>
+        <nav class="navbar is-light" role="navigation" aria-label="main navigation">
+            <div class="navbar-brand">
+                <a class="navbar-item" href="{% url 'parking_management:user_dashboard' %}">
+                    {# <img src="{% static 'path/to/your/logo.png' %}" class="logo" alt="Logo An Cư"> #}
+                    <strong style="font-size: 1.2em;">QL Bãi Xe An Cư</strong>
+                </a>
+
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMainParking">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+
+            <div id="navbarMainParking" class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item {% if request.resolver_match.url_name == 'user_dashboard' %}is-active{% endif %}" href="{% url 'parking_management:user_dashboard' %}">
+                        Trang Chủ
+                    </a>
+                    {% if user.is_authenticated %}
+                        <a class="navbar-item {% if request.resolver_match.url_name == 'kiem_tra_bien_so' %}is-active{% endif %}" href="{% url 'parking_management:kiem_tra_bien_so' %}">
+                            Ghi Nhận Xe Vào
+                        </a>
+                        <a class="navbar-item {% if request.resolver_match.url_name == 'xe_ra_khoi_bai' %}is-active{% endif %}" href="{% url 'parking_management:xe_ra_khoi_bai' %}">
+                            Xử Lý Xe Ra
+                        </a>
+                        <a class="navbar-item {% if request.resolver_match.url_name == 'parkinghistory_list' %}is-active{% endif %}" href="{% url 'parking_management:parkinghistory_list' %}">
+                            Lịch Sử Ra/Vào
+                        </a>
+
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link {% if request.resolver_match.app_name == 'parking_management' and request.resolver_match.url_name in 'khachthue_list,vehicle_list,monthlyticketrule_list' %}is-active{% endif %}">
+                                Quản Lý Dữ Liệu Khách
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item" href="{% url 'parking_management:khachthue_list' %}">
+                                    Khách Thuê
+                                </a>
+                                <a class="navbar-item" href="{% url 'parking_management:vehicle_list' %}">
+                                    Xe Đăng Ký
+                                </a>
+                                <a class="navbar-item" href="{% url 'parking_management:monthlyticketrule_list' %}">
+                                    Giá Vé Tháng
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link {% if request.resolver_match.app_name == 'parking_management' and request.resolver_match.url_name in 'vehicletype_list,perturnticketrule_list' %}is-active{% endif %}">
+                                Quản Lý Chung
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item" href="{% url 'parking_management:vehicletype_list' %}">
+                                    Loại Xe
+                                </a>
+                                <a class="navbar-item" href="{% url 'parking_management:perturnticketrule_list' %}">
+                                    Giá Vé Lượt
+                                </a>
+                            </div>
+                        </div>
+
+                        {# Link Admin Django cho mobile, được bao trong if user.is_authenticated chung #}
+                        <hr class="navbar-divider is-hidden-desktop">
+                        <a class="navbar-item is-hidden-desktop" href="{% url 'admin:index' %}" target="_blank">
+                            Trang Admin Django
+                        </a>
+                    {% endif %} {# Đóng thẻ if user.is_authenticated cho toàn bộ các mục menu cần đăng nhập #}
+                </div>
+
+                <div class="navbar-end">
+                    <div class="navbar-item">
+                        {% if user.is_authenticated %}
+                            {# Link Admin Django cho desktop, chỉ hiển thị khi đã đăng nhập #}
+                            <a class="navbar-item is-hidden-touch" href="{% url 'admin:index' %}" target="_blank">
+                                Admin Django
+                            </a>
+                            <div class="buttons">
+                                <span class="navbar-item">Xin chào, {{ user.username }}!</span>
+                                <a class="button is-light" href="{% url 'parking_management:logout_user' %}">
+                                    Đăng xuất
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="buttons">
+                                <a class="button is-primary" href="{% url 'parking_management:login_user' %}">
+                                    Đăng nhập
+                                </a>
+                            </div>
+                        {% endif %} {# Đóng thẻ if user.is_authenticated cho phần navbar-item này #}
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="site-content">
+        {% block content %}
+        {# Nội dung của các trang con sẽ được chèn vào đây #}
+        {% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>Hệ thống Quản lý Bãi xe Chung cư mini An Cư</strong> - Đồ án tốt nghiệp.
+            </p>
+        </div>
+    </footer>
+
+    <script>
+    // Script cho mobile navbar burger (cần thiết nếu bạn dùng navbar-burger của Bulma)
+    document.addEventListener('DOMContentLoaded', () => {
+      const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
+      if ($navbarBurgers.length > 0) {
+        $navbarBurgers.forEach( el => {
+          el.addEventListener('click', () => {
+            const target = el.dataset.target; // Lấy data-target từ nút burger
+            const $target = document.getElementById(target); // Tìm menu tương ứng bằng ID
+            el.classList.toggle('is-active');
+            $target.classList.toggle('is-active');
+          });
+        });
+      }
+    });
+    </script>
+    {% block extra_js %}{% endblock %} {# Khối để thêm JavaScript riêng cho từng trang con #}
+</body>
+</html>

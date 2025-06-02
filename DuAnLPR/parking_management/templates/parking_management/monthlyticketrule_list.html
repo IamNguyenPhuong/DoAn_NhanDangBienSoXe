@@ -1,0 +1,49 @@
+{% extends "parking_management/base_user.html" %}
+
+{% block title %}Danh Sách Quy Tắc Giá Vé Tháng{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">Danh Sách Quy Tắc Giá Vé Tháng</h2>
+        <a href="{% url 'parking_management:monthlyticketrule_create' %}" class="button is-primary mb-3">Thêm Quy Tắc Mới</a>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification {% if message.tags %}is-{{ message.tags }}{% else %}is-info{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if danh_sach_quy_tac %}
+            <table class="table is-striped is-fullwidth is-hoverable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Loại Xe Áp Dụng</th>
+                        <th>Giá Vé Tháng (VND)</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in danh_sach_quy_tac %}
+                    <tr>
+                        <td>{{ rule.MonthlyRuleID }}</td>
+                        <td>{{ rule.VehicleTypeID.TypeName }}</td>
+                        <td>{{ rule.PricePerMonth|floatformat:0 }}</td>
+                        <td>
+                            <a href="{% url 'parking_management:monthlyticketrule_update' rule.MonthlyRuleID %}" class="button is-small is-info">Sửa</a>
+                            <a href="{% url 'parking_management:monthlyticketrule_delete' rule.MonthlyRuleID %}" class="button is-small is-danger">Xóa</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Chưa có quy tắc giá vé tháng nào trong hệ thống.</p>
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

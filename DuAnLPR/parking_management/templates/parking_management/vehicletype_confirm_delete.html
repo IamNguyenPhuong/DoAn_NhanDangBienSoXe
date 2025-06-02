@@ -1,0 +1,25 @@
+{% extends "parking_management/base_user.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">{{ page_title }}</h2>
+        <p>Bạn có chắc chắn muốn xóa loại xe: <strong>{{ object_to_delete.TypeName }}</strong> (ID: {{ object_to_delete.VehicleTypeID }}) không?</p>
+        <p class="has-text-danger">Lưu ý: Hành động này không thể hoàn tác. Nếu loại xe này đang được sử dụng bởi các Xe hoặc Quy tắc giá, bạn sẽ không thể xóa.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field is-grouped mt-4">
+                <div class="control">
+                    <button type="submit" class="button is-danger">Xác nhận Xóa</button>
+                </div>
+                <div class="control">
+                    <a href="{% url 'parking_management:vehicletype_list' %}" class="button is-light">Hủy</a>
+                </div>
+            </div>
+        </form>
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button is-link is-light mt-5">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

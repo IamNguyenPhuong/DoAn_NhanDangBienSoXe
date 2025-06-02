@@ -1,0 +1,30 @@
+{% extends "parking_management/base_user.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">{{ page_title }}</h2>
+        <p>Bạn có chắc chắn muốn xóa quy tắc giá vé lượt: 
+            <strong>{{ object_to_delete.ShiftName|default:object_to_delete.Description|default:"Không có mô tả" }}</strong> 
+            cho loại xe <strong>{{ object_to_delete.VehicleTypeID.TypeName }}</strong>
+            với giá <strong>{{ object_to_delete.Price|floatformat:0|intcomma }} VND</strong> 
+            (ID Quy tắc: {{ object_to_delete.PerTurnRuleID }}) không?
+        </p>
+        <p class="has-text-danger">Lưu ý: Hành động này không thể hoàn tác.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field is-grouped mt-4">
+                <div class="control">
+                    <button type="submit" class="button is-danger">Xác nhận Xóa</button>
+                </div>
+                <div class="control">
+                    <a href="{% url 'parking_management:perturnticketrule_list' %}" class="button is-light">Hủy</a>
+                </div>
+            </div>
+        </form>
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button is-link is-light mt-5">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

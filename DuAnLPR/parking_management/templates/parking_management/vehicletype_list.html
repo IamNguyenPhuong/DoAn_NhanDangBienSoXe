@@ -1,0 +1,47 @@
+{% extends "parking_management/base_user.html" %}
+
+{% block title %}Danh Sách Loại Xe{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">Danh Sách Loại Xe</h2>
+        <a href="{% url 'parking_management:vehicletype_create' %}" class="button is-primary mb-3">Thêm Loại Xe Mới</a>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification {% if message.tags %}is-{{ message.tags }}{% else %}is-info{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if danh_sach_loai_xe %}
+            <table class="table is-striped is-fullwidth is-hoverable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên Loại Xe</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vt in danh_sach_loai_xe %}
+                    <tr>
+                        <td>{{ vt.VehicleTypeID }}</td>
+                        <td>{{ vt.TypeName }}</td>
+                        <td>
+                            <a href="{% url 'parking_management:vehicletype_update' vt.VehicleTypeID %}" class="button is-small is-info">Sửa</a>
+                            <a href="{% url 'parking_management:vehicletype_delete' vt.VehicleTypeID %}" class="button is-small is-danger">Xóa</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Chưa có loại xe nào trong hệ thống.</p>
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

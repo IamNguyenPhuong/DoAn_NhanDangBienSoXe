@@ -1,0 +1,131 @@
+{% extends "parking_management/base_user.html" %}
+{% load humanize tz %} {# Nạp cả humanize và tz #}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">{{ page_title }}</h2>
+
+        {# Form tìm kiếm đơn giản #}
+        <form method="get" class="mb-4">
+            <div class="field has-addons">
+                <div class="control is-expanded">
+                    <input class="input" type="text" name="q" placeholder="Nhập biển số xe để tìm kiếm..." value="{{ query|default_if_none:'' }}">
+                </div>
+                <div class="control">
+                    <button type="submit" class="button is-info">Tìm</button>
+                </div>
+                 {% if query %}
+                <div class="control">
+                    <a href="{% url 'parking_management:parkinghistory_list' %}" class="button is-light">Xóa tìm kiếm</a>
+                </div>
+                {% endif %}
+            </div>
+        </form>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification {% if message.tags %}is-{{ message.tags }}{% else %}is-info{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if page_obj.object_list %}
+            <div class="table-container">
+                <table class="table is-striped is-fullwidth is-hoverable is-narrow">
+                    <thead>
+                        <tr>
+                            <th>ID Lượt</th>
+                            <th>Biển Số Vào</th>
+                            <th>Chủ Xe / Loại</th>
+                            <th>TG Vào</th>
+                            <th>TG Ra</th>
+                            <th>Biển Số Ra</th>
+                            <th>Phí (VND)</th>
+                            <th>Vé Tháng</th>
+                            <th>Trạng Thái</th>
+                            {# <th>Ảnh Vào</th> #}
+                            {# <th>Ảnh Ra</th> #}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in page_obj.object_list %}
+                        <tr>
+                            <td>{{ record.RecordID }}</td>
+                            <td><strong>{{ record.ProcessedLicensePlateEntry|default_if_none:"N/A" }}</strong></td>
+                            <td>
+                                {% if record.VehicleID %}
+                                    {{ record.VehicleID.KhachThueID.HoVaTen|default_if_none:"(Khách thuê không tên)" }}
+                                    <br><small>({{ record.VehicleID.VehicleTypeID.TypeName }})</small>
+                                {% else %}
+                                    <span class="tag is-light">Khách vãng lai</span>
+                                    <br><small>(Xe máy)</small> {# Giả định khách lạ là xe máy #}
+                                {% endif %}
+                            </td>
+                            <td>{{ record.EntryTime|localtime|date:"H:i:s d/m/Y" }}</td>
+                            <td>{{ record.ExitTime|localtime|date:"H:i:s d/m/Y"|default_if_none:"-" }}</td>
+                            <td>{{ record.ProcessedLicensePlateExit|default_if_none:"-" }}</td>
+                            <td>{{ record.CalculatedFee|floatformat:0|intcomma|default_if_none:"-" }}</td>
+                            <td>
+                                {% if record.WasMonthlyTicketUsed %}
+                                    <span class="tag is-success is-light">Có</span>
+                                {% else %}
+                                    <span class="tag is-light">Không</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.Status == 'IN_YARD' %}
+                                    <span class="tag is-warning">Đang trong bãi</span>
+                                {% elif record.Status == 'EXITED' %}
+                                    <span class="tag is-info">Đã rời bãi</span>
+                                {% else %}
+                                    {{ record.Status|default_if_none:"-" }}
+                                {% endif %}
+                            </td>
+                            {# Hiển thị link ảnh nếu có và bạn muốn (cần cấu hình MEDIA_URL) #}
+                            {# <td>
+                                {% if record.EntryVehicleImagePath %}
+                                    <a href="{{ MEDIA_URL }}{{ record.EntryVehicleImagePath }}" target="_blank">Xem ảnh</a>
+                                {% endif %}
+                            </td> #}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {# Phân trang #}
+            <nav class="pagination is-centered mt-5" role="navigation" aria-label="pagination">
+                <ul class="pagination-list">
+                    {% if page_obj.has_previous %}
+                        <li><a class="pagination-previous" href="?page=1{% if query %}&q={{query}}{% endif %}">Đầu</a></li>
+                        <li><a class="pagination-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{query}}{% endif %}">&laquo;</a></li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li><a class="pagination-link is-current" aria-current="page">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li><a class="pagination-link" href="?page={{ num }}{% if query %}&q={{query}}{% endif %}">{{ num }}</a></li>
+                        {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                             <li><span class="pagination-ellipsis">&hellip;</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li><a class="pagination-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{query}}{% endif %}">&raquo;</a></li>
+                        <li><a class="pagination-next" href="?page={{ page_obj.paginator.num_pages }}{% if query %}&q={{query}}{% endif %}">Cuối</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+
+        {% else %}
+            <p>Chưa có lịch sử xe ra/vào nào trong hệ thống {% if query %}cho tìm kiếm "{{ query }}"{% endif %}.</p>
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-5">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

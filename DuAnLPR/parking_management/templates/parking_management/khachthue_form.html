@@ -1,0 +1,23 @@
+{% extends "parking_management/base_user.html" %}
+{% load tz %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container section">
+    <h2>{{ page_title }}</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }} {# Render form với các đoạn <p> #}
+        <div class="field is-grouped">
+            <div class="control">
+                <button type="submit" class="button is-success">Lưu</button>
+            </div>
+            <div class="control">
+                <a href="{% url 'parking_management:khachthue_list' %}" class="button is-light">Hủy</a>
+            </div>
+        </div>
+    </form>
+    <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+</div>
+{% endblock %}

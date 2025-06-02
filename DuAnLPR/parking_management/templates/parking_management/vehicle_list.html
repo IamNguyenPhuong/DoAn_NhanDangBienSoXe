@@ -1,0 +1,60 @@
+{% extends "parking_management/base_user.html" %}
+{% load tz %}
+
+{% block title %}Danh Sách Xe Đăng Ký{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">Danh Sách Xe Đăng Ký</h2>
+        <a href="{% url 'parking_management:vehicle_create' %}" class="button is-primary mb-3">Thêm Xe Mới</a>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification {% if message.tags %}is-{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if danh_sach_xe %}
+            <table class="table is-striped is-fullwidth is-hoverable">
+                <thead>
+                    <tr>
+                        <th>ID Xe</th>
+                        <th>Biển Số Xe</th>
+                        <th>Chủ Sở Hữu</th>
+                        <th>Loại Xe</th>
+                        <th>Vé Tháng</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for xe in danh_sach_xe %}
+                    <tr>
+                        <td>{{ xe.VehicleID }}</td>
+                        <td>{{ xe.BienSoXe }}</td>
+                        <td>{{ xe.KhachThueID.HoVaTen }} (ID: {{ xe.KhachThueID.KhachThueID }})</td>
+                        <td>{{ xe.VehicleTypeID.TypeName }}</td>
+                        <td>
+                            {% if xe.HasMonthlyTicket %}
+                                <span class="tag is-success is-light">Có</span>
+                            {% else %}
+                                <span class="tag is-warning is-light">Không</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'parking_management:vehicle_update' xe.VehicleID %}" class="button is-small is-info">Sửa</a>
+                            <a href="{% url 'parking_management:vehicle_delete' xe.VehicleID %}" class="button is-small is-danger">Xóa</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Chưa có xe nào được đăng ký trong hệ thống.</p>
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "parking_management/base_user.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">{{ page_title }}</h2>
+        <p>Bạn có chắc chắn muốn xóa xe có biển số: <strong>{{ vehicle.BienSoXe }}</strong> (ID: {{ vehicle.VehicleID }}) không?</p>
+        <p>Xe này thuộc sở hữu của: <strong>{{ vehicle.KhachThueID.HoVaTen }}</strong>.</p>
+        <p>Lưu ý: Các lịch sử gửi xe liên quan đến xe này sẽ không bị xóa nhưng sẽ không còn liên kết trực tiếp đến xe này nữa (trường VehicleID sẽ là NULL).</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="field is-grouped mt-4">
+                <div class="control">
+                    <button type="submit" class="button is-danger">Xác nhận Xóa</button>
+                </div>
+                <div class="control">
+                    <a href="{% url 'parking_management:vehicle_list' %}" class="button is-light">Hủy</a>
+                </div>
+            </div>
+        </form>
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button is-link is-light mt-5">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

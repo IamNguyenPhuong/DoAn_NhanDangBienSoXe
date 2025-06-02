@@ -1,0 +1,57 @@
+{% extends "parking_management/base_user.html" %}
+{% load humanize %} {# <<--- THÊM DÒNG NÀY #}
+{% load tz %} {# Nếu bạn cũng dùng các bộ lọc thời gian như localtime, date #}
+
+{% block title %}Danh Sách Quy Tắc Giá Vé Lượt{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">Danh Sách Quy Tắc Giá Vé Lượt</h2>
+        <a href="{% url 'parking_management:perturnticketrule_create' %}" class="button is-primary mb-3">Thêm Quy Tắc Mới</a>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="notification {% if message.tags %}is-{{ message.tags }}{% else %}is-info{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if danh_sach_quy_tac %}
+            <table class="table is-striped is-fullwidth is-hoverable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Loại Xe</th>
+                        <th>Tên Ca</th>
+                        <th>Giờ Bắt Đầu</th>
+                        <th>Giờ Kết Thúc</th>
+                        <th>Giá (VND)</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rule in danh_sach_quy_tac %}
+                    <tr>
+                        <td>{{ rule.PerTurnRuleID }}</td>
+                        <td>{{ rule.VehicleTypeID.TypeName }}</td>
+                        <td>{{ rule.ShiftName|default_if_none:"N/A" }}</td>
+                        <td>{{ rule.TimeFrom|time:"H:i"|default_if_none:"N/A" }}</td>
+                        <td>{{ rule.TimeTo|time:"H:i"|default_if_none:"N/A" }}</td>
+                        <td>{{ rule.Price|floatformat:0|intcomma }}</td> {# Dòng này cần {% load humanize %} #}
+                        <td>
+                            <a href="{% url 'parking_management:perturnticketrule_update' rule.PerTurnRuleID %}" class="button is-small is-info">Sửa</a>
+                            <a href="{% url 'parking_management:perturnticketrule_delete' rule.PerTurnRuleID %}" class="button is-small is-danger">Xóa</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Chưa có quy tắc giá vé lượt nào trong hệ thống.</p>
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

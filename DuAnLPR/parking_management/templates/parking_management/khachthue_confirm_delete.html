@@ -1,0 +1,24 @@
+{% extends "parking_management/base_user.html" %}
+{% load tz %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container section">
+    <h2>{{ page_title }}</h2>
+    <p>Bạn có chắc chắn muốn xóa khách thuê: <strong>{{ khach_thue.HoVaTen }}</strong> (ID: {{ khach_thue.KhachThueID }}) không?</p>
+    <p>Lưu ý: Nếu khách thuê này có xe đã đăng ký, các xe đó cũng sẽ bị xóa theo.</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="field is-grouped">
+            <div class="control">
+                <button type="submit" class="button is-danger">Xác nhận Xóa</button>
+            </div>
+            <div class="control">
+                <a href="{% url 'parking_management:khachthue_list' %}" class="button is-light">Hủy</a>
+            </div>
+        </div>
+    </form>
+    <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+</div>
+{% endblock %}

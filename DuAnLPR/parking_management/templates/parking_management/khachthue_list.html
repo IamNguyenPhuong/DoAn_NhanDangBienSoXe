@@ -1,0 +1,53 @@
+{% extends "parking_management/base_user.html" %} {# Giả sử bạn có file base_user.html #}
+{% load tz %}
+
+{% block title %}Danh Sách Khách Thuê{% endblock %}
+
+{% block content %}
+<div class="container section">
+    <h2>Danh Sách Khách Thuê</h2>
+    <a href="{% url 'parking_management:khachthue_create' %}" class="button is-primary mb-3">Thêm Khách Thuê Mới</a>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="notification {% if message.tags %}is-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if danh_sach_khach_thue %}
+        <table class="table is-striped is-fullwidth is-hoverable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Họ và Tên</th>
+                    <th>Ngày Sinh</th>
+                    <th>Giới Tính</th>
+                    <th>Số Điện Thoại</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for kt in danh_sach_khach_thue %}
+                <tr>
+                    <td>{{ kt.KhachThueID }}</td>
+                    <td>{{ kt.HoVaTen }}</td>
+                    <td>{{ kt.NgaySinh|date:"d/m/Y"|default_if_none:"N/A" }}</td>
+                    <td>{{ kt.GioiTinh|default_if_none:"N/A" }}</td>
+                    <td>{{ kt.SoDienThoai|default_if_none:"N/A" }}</td>
+                    <td>
+                        <a href="{% url 'parking_management:khachthue_update' kt.KhachThueID %}" class="button is-small is-info">Sửa</a>
+                        <a href="{% url 'parking_management:khachthue_delete' kt.KhachThueID %}" class="button is-small is-danger">Xóa</a>
+                        {# Thêm link xem danh sách xe của khách thuê này sau #}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Chưa có khách thuê nào trong hệ thống.</p>
+    {% endif %}
+     <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-3">Quay lại Trang chủ</a></p>
+</div>
+{% endblock %}
