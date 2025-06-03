@@ -104,7 +104,7 @@
 
                         <div class="navbar-item has-dropdown is-hoverable">
                             <a class="navbar-link {% if request.resolver_match.app_name == 'parking_management' and request.resolver_match.url_name in 'vehicletype_list,perturnticketrule_list' %}is-active{% endif %}">
-                                Quản Lý Chung
+                                Quản Lý Khác
                             </a>
                             <div class="navbar-dropdown">
                                 <a class="navbar-item" href="{% url 'parking_management:vehicletype_list' %}">
@@ -157,7 +157,7 @@
     <footer class="footer">
         <div class="content has-text-centered">
             <p>
-                <strong>Hệ thống Quản lý Bãi xe Chung cư mini An Cư</strong> - Đồ án tốt nghiệp.
+                <strong style="color:white">Hệ thống Quản lý Bãi xe Chung cư mini An Cư</strong> - Đồ án tốt nghiệp.
             </p>
         </div>
     </footer>

@@ -1,77 +1,134 @@
-
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Xử Lý Xe Ra Khỏi Bãi</title>
-    <style>
-        /* ... (Sao chép CSS từ kiem_tra_bien_so.html nếu muốn) ... */
-        body { font-family: sans-serif; margin: 20px; }
-        .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
-        input[type="text"], button { padding: 10px; margin-top: 5px; margin-bottom: 15px; width: calc(100% - 22px); }
-        button { width: 100%; background-color: #f44336; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #da190b; }
-        .btn-confirm { background-color: #4CAF50; }
-        .btn-confirm:hover { background-color: #45a049; }
-        .message { padding: 10px; margin-top: 15px; border-radius: 3px; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .vehicle-info { border: 1px solid #ddd; padding: 15px; margin-top: 20px; }
-    </style>
-</head>
-<body>
+{% extends "parking_management/base_user.html" %}
 {% load tz %}
+{% load humanize %}
+{% load static %}
+
+{% block title %}Xử Lý Xe Ra Khỏi Bãi{% endblock %}
+
+{% block extra_head %}
+<style>
+    .vehicle-info {
+        margin-top: 1.5rem;
+    }
+    .vehicle-info h4 {
+        /* Bạn có thể dùng class subtitle is-5 của Bulma */
+    }
+    .vehicle-info p {
+        margin-bottom: 0.75rem;
+    }
+    .navigation-links-page {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+        text-align: center;
+    }
+    .navigation-links-page a.button {
+        margin: 0 0.25rem;
+    }
+    .detail-times {
+        margin-top: 0.5rem; /* Thêm chút khoảng cách */
+        padding-top: 0.5rem;
+        border-top: 1px dashed #dbdbdb; /* Đường kẻ ngang mờ */
+    }
+    .detail-times p {
+        margin-bottom: 0.25rem; /* Giảm khoảng cách giữa các dòng thời gian */
+    }
+    .section{
+        max-width: 60%;
+        margin-left: auto;
+        margin-right: auto;
+
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
     <div class="container">
-        <h1>Xử Lý Xe Ra Khỏi Bãi</h1>
+        <h1 class="title is-3">Xử Lý Xe Ra Khỏi Bãi</h1>
 
         <form method="POST">
             {% csrf_token %}
-            <label for="bien_so_ra">Nhập biển số xe muốn ra:</label>
-            <input type="text" id="bien_so_ra" name="bien_so_ra" value="{{ bien_so_da_nhap|default_if_none:'' }}" placeholder="Ví dụ: 29A1-12345">
+            <div class="field">
+                <label class="label" for="bien_so_ra">Nhập biển số xe muốn ra:</label>
+                <div class="control">
+                    <input class="input" type="text" id="bien_so_ra" name="bien_so_ra" value="{{ bien_so_da_nhap|default_if_none:'' }}" placeholder="Ví dụ: 29A1-12345">
+                </div>
+            </div>
 
-            {% if not lich_su_gui_xe %}
-                {# Nếu chưa tìm thấy xe hoặc xe đã ra, chỉ hiển thị nút tìm kiếm #}
-                <button type="submit" name="action_tim_xe">Tìm Xe Trong Bãi</button>
+            {% if not lich_su_gui_xe_hien_tai %} {# Sửa tên biến context #}
+                <div class="field mt-4">
+                    <div class="control">
+                        <button type="submit" name="action_tim_xe" class="button is-info is-fullwidth">Tìm Xe Trong Bãi</button>
+                    </div>
+                </div>
             {% endif %}
 
-            {% if lich_su_gui_xe %}
-                <div class="vehicle-info">
-                    <h4>Thông tin xe đang trong bãi:</h4>
+            {% if lich_su_gui_xe_hien_tai %} {# Sửa tên biến context #}
+                <div class="vehicle-info notification is-light mt-4">
+                    <h4 class="subtitle is-5 has-text-weight-semibold">Thông tin xe đang trong bãi:</h4>
+                    {% if thong_bao_text and thoi_gian_vao %} {# thoi_gian_vao vẫn được dùng ở đây #}
                     <p>{{ thong_bao_text }} <strong>{{ thoi_gian_vao|localtime|date:"Y-m-d H:i:s" }}</strong></p>
-                    {% if lich_su_gui_xe.VehicleID %}
-                        <p>Loại xe: {{ lich_su_gui_xe.VehicleID.VehicleTypeID.TypeName }}</p>
+                    {% elif thong_bao_text %}
+                    <p>{{ thong_bao_text }}</p>
+                    {% endif %}
+
+                    {% if lich_su_gui_xe_hien_tai.VehicleID %} {# Sửa tên biến context #}
+                        <p>Loại xe: {{ lich_su_gui_xe_hien_tai.VehicleID.VehicleTypeID.TypeName }}</p>
                         <p>Tình trạng vé tháng:
                             {% if co_ve_thang %}
-                                <span style="color: green;">CÓ HIỆU LỰC</span>
+                                <span class="tag is-success">CÓ HIỆU LỰC</span>
                             {% else %}
-                                <span style="color: orange;">KHÔNG hoặc HẾT HẠN</span>
+                                <span class="tag is-warning">KHÔNG hoặc HẾT HẠN</span>
                             {% endif %}
                         </p>
                     {% else %}
                         <p>Loại xe: Xe máy (Khách vãng lai)</p>
                     {% endif %}
-                    <button type="submit" name="action_tinh_tien_va_cho_ra" class="btn-confirm">Tính Tiền và Cho Xe Ra</button>
+                    <div class="field mt-4">
+                        <div class="control">
+                             <button type="submit" name="action_tinh_tien_va_cho_ra" class="button is-success is-fullwidth">Tính Tiền và Cho Xe Ra</button>
+                        </div>
+                    </div>
                 </div>
             {% endif %}
         </form>
 
         {% if thong_bao_thanh_cong %}
-            <p class="message success">
-                {{ thong_bao_thanh_cong }}
+            <div class="notification is-success mt-4">
+                <p>{{ thong_bao_thanh_cong }}</p>
                 {% if tien_phai_tra is not None %}
-                    Số tiền phải trả: <strong>{{ tien_phai_tra }} VND</strong>
+                    <p>Số tiền phải trả: <strong>{{ tien_phai_tra|floatformat:0|intcomma }} VND</strong></p>
                 {% endif %}
-            </p>
+
+                {# PHẦN HIỂN THỊ THỜI GIAN VÀO/RA ĐÃ ĐƯỢC THÊM TRONG FILE BẠN GỬI #}
+                {# Đảm bảo sử dụng đúng biến context 'entry_time_display' và 'exit_time_display' #}
+                {% if entry_time_display and exit_time_display %}
+                <div class="detail-times"> {# Thêm class để style nếu muốn #}
+                    <p style="font-weight: bold;">Chi tiết lượt gửi:</p>
+                    <p>Thời gian vào: {{ entry_time_display|localtime|date:"H:i" }} Ngày {{ entry_time_display|localtime|date:"d" }} tháng {{ entry_time_display|localtime|date:"n" }} năm {{ entry_time_display|localtime|date:"Y" }}</p>
+                    <p>Thời gian ra: {{ exit_time_display|localtime|date:"H:i" }} Ngày {{ exit_time_display|localtime|date:"d" }} tháng {{ exit_time_display|localtime|date:"n" }} năm {{ exit_time_display|localtime|date:"Y" }}</p>
+                </div>
+                {% endif %}
+            </div>
         {% endif %}
 
         {% if thong_bao_loi %}
-            <p class="message error">{{ thong_bao_loi }}</p>
+            <div class="notification is-danger mt-4">
+                {{ thong_bao_loi }}
+            </div>
         {% endif %}
 
-        <hr>
-        <p><a href="{% url 'parking_management:kiem_tra_bien_so' %}">Ghi nhận xe vào</a></p>
-        <p><a href="{% url 'admin:index' %}">Đến trang Admin</a></p>
+        <div class="navigation-links-page columns is-centered mt-5">
+            <div class="column is-narrow">
+                <a href="{% url 'parking_management:user_dashboard' %}" class="button is-link is-light">Về Trang Chủ</a>
+            </div>
+            <div class="column is-narrow">
+                <a href="{% url 'parking_management:kiem_tra_bien_so' %}" class="button is-link is-light">Ghi Nhận Xe Vào</a>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</section>
+{% endblock %}
+
+{% block extra_js %}{% endblock %}

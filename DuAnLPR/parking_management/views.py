@@ -277,18 +277,16 @@ def calculate_parking_fee_detailed(entry_dt_utc, exit_dt_utc, vehicle_type):
 
 # View cho Xử lý xe ra
 @login_required
+@login_required
 def xe_ra_khoi_bai_view(request):
-    # ... (Nội dung hàm này giữ nguyên như phiên bản bạn đã có và thấy ổn) ...
-    # Đảm bảo rằng khi gọi calculate_parking_fee_detailed, bạn truyền đúng:
-    # lich_su_gui_xe.EntryTime (đang là UTC)
-    # lich_su_gui_xe.ExitTime (đang là UTC, vừa được gán timezone.now())
-    # current_vehicle_type (đối tượng VehicleTypes)
     context = {
         'bien_so_da_nhap': '',
-        'lich_su_gui_xe': None,
+        'lich_su_gui_xe_hien_tai': None,  # Đổi tên để phân biệt với biến trong logic
         'thong_bao_loi': None,
-        'thong_bao_thanh_cong': None,
+        'thong_bao_thanh_cong': None,  # Giữ lại để chứa thông báo chính
         'tien_phai_tra': None,
+        'entry_time_display': None,  # Sẽ dùng để hiển thị thời gian vào
+        'exit_time_display': None,  # Sẽ dùng để hiển thị thời gian ra
     }
 
     if request.method == 'POST':
@@ -298,90 +296,94 @@ def xe_ra_khoi_bai_view(request):
         if not bien_so_nhap_ra:
             context['thong_bao_loi'] = "Vui lòng nhập biển số xe muốn ra."
         else:
-            lich_su_gui_xe = ParkingHistory.objects.filter(
-                VehicleID__BienSoXe__iexact=bien_so_nhap_ra,
+            # Tìm xe trong bãi (ưu tiên xe khách thuê, sau đó đến xe khách vãng lai)
+            lich_su_dang_xu_ly = ParkingHistory.objects.filter(
+                (Q(VehicleID__BienSoXe__iexact=bien_so_nhap_ra) | Q(
+                    ProcessedLicensePlateEntry__iexact=bien_so_nhap_ra)),
                 ExitTime__isnull=True,
                 Status='IN_YARD'
-            ).select_related('VehicleID', 'VehicleID__VehicleTypeID').first()  # Thêm select_related
+            ).select_related('VehicleID', 'VehicleID__VehicleTypeID', 'VehicleID__KhachThueID').first()
 
-            if not lich_su_gui_xe:
-                lich_su_gui_xe = ParkingHistory.objects.filter(
-                    ProcessedLicensePlateEntry__iexact=bien_so_nhap_ra,
-                    VehicleID__isnull=True,
-                    ExitTime__isnull=True,
-                    Status='IN_YARD'
-                ).first()
+            context['lich_su_gui_xe_hien_tai'] = lich_su_dang_xu_ly
 
-            context['lich_su_gui_xe'] = lich_su_gui_xe
+            if lich_su_dang_xu_ly:
+                # Biến này sẽ lưu lại EntryTime gốc để hiển thị, vì lich_su_dang_xu_ly có thể được clear
+                entry_time_cho_hien_thi = lich_su_dang_xu_ly.EntryTime
 
-            if lich_su_gui_xe:
                 if 'action_tinh_tien_va_cho_ra' in request.POST:
-                    lich_su_gui_xe.ExitTime = timezone.now()  # Đây là aware datetime (UTC nếu USE_TZ=True)
+                    lich_su_dang_xu_ly.ExitTime = timezone.now()
 
                     phi_gui_xe = Decimal('0.00')
                     rules_applied_info = []
 
-                    if lich_su_gui_xe.VehicleID and lich_su_gui_xe.VehicleID.HasMonthlyTicket:
-                        lich_su_gui_xe.WasMonthlyTicketUsed = True
+                    if lich_su_dang_xu_ly.VehicleID and lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket:
+                        lich_su_dang_xu_ly.WasMonthlyTicketUsed = True
+                        # Thông báo chính
                         context[
                             'thong_bao_thanh_cong'] = f"Xe {bien_so_nhap_ra} của khách thuê sử dụng vé tháng. Cho xe ra."
+                        # Không cần thông tin "Các ca áp dụng" và "Tổng số tiền" nếu dùng vé tháng
                     else:
                         current_vehicle_type = None
-                        if lich_su_gui_xe.VehicleID:
-                            current_vehicle_type = lich_su_gui_xe.VehicleID.VehicleTypeID
+                        if lich_su_dang_xu_ly.VehicleID:
+                            current_vehicle_type = lich_su_dang_xu_ly.VehicleID.VehicleTypeID
                         else:
                             try:
                                 current_vehicle_type = VehicleTypes.objects.get(TypeName='Xe máy')
                             except VehicleTypes.DoesNotExist:
                                 context['thong_bao_loi'] = "Lỗi: Không tìm thấy loại xe 'Xe máy' mặc định."
-                                lich_su_gui_xe.CalculatedFee = phi_gui_xe
-                                lich_su_gui_xe.Status = 'EXITED_WITH_ERROR_NO_TYPE'
-                                lich_su_gui_xe.save()
+                                # Không nên save ở đây nếu có lỗi, để người dùng thử lại
+                                # lich_su_dang_xu_ly.Status = 'EXITED_WITH_ERROR_NO_TYPE'
+                                # lich_su_dang_xu_ly.save()
                                 return render(request, 'parking_management/xe_ra_khoi_bai.html', context)
 
-                        # `lich_su_gui_xe.EntryTime` và `lich_su_gui_xe.ExitTime` được truyền vào đây
-                        # Chúng là aware datetime objects (thường là UTC)
-                        phi_gui_xe, rules_applied_info = calculate_parking_fee_detailed(
-                            lich_su_gui_xe.EntryTime,
-                            lich_su_gui_xe.ExitTime,
-                            current_vehicle_type
-                        )
+                        if current_vehicle_type:
+                            phi_gui_xe, rules_applied_info = calculate_parking_fee_detailed(
+                                entry_time_cho_hien_thi,  # Sử dụng EntryTime gốc
+                                lich_su_dang_xu_ly.ExitTime,
+                                current_vehicle_type
+                            )
 
-                        if rules_applied_info and not any("Không có quy tắc" in s for s in rules_applied_info):
-                            # Gán PerTurnRuleAppliedID nếu muốn (ví dụ rule đầu tiên, hoặc dựa trên logic khác)
-                            # lich_su_gui_xe.PerTurnRuleAppliedID = PerTurnTicketRules.objects.filter(VehicleTypeID=current_vehicle_type).first()
-                            context['thong_bao_thanh_cong'] = (f"Đã tính tiền cho xe {bien_so_nhap_ra}. "
-                                                               f"Các ca áp dụng: {'; '.join(rules_applied_info)}. "
-                                                               f"Tổng số tiền: {phi_gui_xe} VND. Cho xe ra.")
-                        elif rules_applied_info and "Không có quy tắc" in rules_applied_info[
-                            0]:  # Kiểm tra lỗi trả về từ hàm tính
-                            context['thong_bao_loi'] = rules_applied_info[
-                                                           0] + f" Cho xe {bien_so_nhap_ra} ra không tính phí."
-                            phi_gui_xe = Decimal('0.00')
+                            if rules_applied_info and not any("Không có quy tắc" in s for s in rules_applied_info):
+                                context['thong_bao_thanh_cong'] = (f"Đã tính tiền cho xe {bien_so_nhap_ra}. "
+                                                                   f"Các ca áp dụng: {'; '.join(rules_applied_info)}. "
+                                                                   f"Tổng số tiền: {phi_gui_xe} VND. Cho xe ra.")
+                            elif rules_applied_info and "Không có quy tắc" in rules_applied_info[0]:
+                                context['thong_bao_thanh_cong'] = rules_applied_info[
+                                                                      0] + f" Xe {bien_so_nhap_ra} ra không tính phí."
+                                phi_gui_xe = Decimal('0.00')
+                            else:
+                                context['thong_bao_thanh_cong'] = (
+                                    f"Không xác định được quy tắc tính phí cho xe {bien_so_nhap_ra}. "
+                                    f"Cho xe ra không tính phí.")
+                                phi_gui_xe = Decimal('0.00')
                         else:
-                            context['thong_bao_loi'] = (
-                                f"Không xác định được quy tắc tính phí cho xe {bien_so_nhap_ra}. "
-                                f"Tạm thời cho xe ra không tính phí.")
-                            phi_gui_xe = Decimal('0.00')
+                            context['thong_bao_loi'] = "Không thể xác định loại xe để tính phí."
+                            phi_gui_xe = Decimal('0.00')  # Gán phí là 0 nếu không xác định được
 
-                    lich_su_gui_xe.CalculatedFee = phi_gui_xe
-                    lich_su_gui_xe.Status = 'EXITED'
-                    lich_su_gui_xe.save()
+                    lich_su_dang_xu_ly.CalculatedFee = phi_gui_xe
+                    lich_su_dang_xu_ly.Status = 'EXITED'
+                    lich_su_dang_xu_ly.save()
 
-                    context['tien_phai_tra'] = lich_su_gui_xe.CalculatedFee
-                    context['lich_su_gui_xe'] = None
-                else:  # Hiển thị thông tin xe để xác nhận
-                    if lich_su_gui_xe.VehicleID:
-                        khach_thue = lich_su_gui_xe.VehicleID.KhachThueID
-                        context['thong_bao_text'] = (f"Tìm thấy xe {lich_su_gui_xe.VehicleID.BienSoXe} của khách thuê "
-                                                     f"{khach_thue.HoVaTen} đang trong bãi.")
-                        context['thoi_gian_vao'] = lich_su_gui_xe.EntryTime  # Sẽ được localize trong template
-                        context['co_ve_thang'] = lich_su_gui_xe.VehicleID.HasMonthlyTicket
-                    else:
+                    context['tien_phai_tra'] = lich_su_dang_xu_ly.CalculatedFee
+                    # Lưu thời gian vào và ra vào context để hiển thị
+                    context['entry_time_display'] = entry_time_cho_hien_thi
+                    context['exit_time_display'] = lich_su_dang_xu_ly.ExitTime
+                    context['lich_su_gui_xe_hien_tai'] = None  # Reset để ẩn phần xác nhận
+                else:
+                    # Logic hiển thị thông tin xe để xác nhận (giữ nguyên như file views.py của bạn)
+                    if lich_su_dang_xu_ly.VehicleID:
+                        # ...
                         context['thong_bao_text'] = (
-                            f"Tìm thấy xe khách vãng lai {lich_su_gui_xe.ProcessedLicensePlateEntry} "
+                            f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê "
+                            f"{lich_su_dang_xu_ly.VehicleID.KhachThueID.HoVaTen} đang trong bãi.")
+                        context['thoi_gian_vao'] = lich_su_dang_xu_ly.EntryTime
+                        context['co_ve_thang'] = lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket
+                    else:
+                        # ...
+                        context['thong_bao_text'] = (
+                            f"Tìm thấy xe khách vãng lai {lich_su_dang_xu_ly.ProcessedLicensePlateEntry} "
                             f"đang trong bãi.")
-                        context['thoi_gian_vao'] = lich_su_gui_xe.EntryTime  # Sẽ được localize trong template
+                        context['thoi_gian_vao'] = lich_su_dang_xu_ly.EntryTime
                         context['co_ve_thang'] = False
             else:
                 context['thong_bao_loi'] = f"Không tìm thấy xe có biển số {bien_so_nhap_ra} đang trong bãi."

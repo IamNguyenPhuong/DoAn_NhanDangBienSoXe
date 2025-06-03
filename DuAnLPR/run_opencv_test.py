@@ -129,7 +129,7 @@ def process_image_for_plate_ocr(image_file_path):
 
         # --- THỰC HIỆN OCR ---
         try:
-            char_whitelist = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789-.'
+            char_whitelist = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789-'
             # THỬ NGHIỆM CÁC GIÁ TRỊ --psm. Nếu OCR trên toàn ảnh, psm 6 hoặc 11 có thể tốt hơn.
             # Nếu OCR trên vùng cắt nhỏ (hy vọng là biển số), psm 7 hoặc 8.
             psm_mode = '11' if license_plate_contour_final is not None else '7'  # Chọn psm tùy theo có khoanh vùng được không

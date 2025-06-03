@@ -1,63 +1,155 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Kiểm Tra Biển Số Xe / Ghi Nhận Xe Vào</title>
-    <style>
-        body { font-family: sans-serif; margin: 20px; }
-        .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 5px; }
-        input[type="text"], button { padding: 10px; margin-top: 5px; margin-bottom: 15px; width: calc(100% - 22px); }
-        button { width: 100%; background-color: #4CAF50; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #45a049; }
-        .message { padding: 10px; margin-top: 15px; border-radius: 3px; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-    </style>
-</head>
-<body>
+{% extends "parking_management/base_user.html" %}
 {% load tz %}
-    <div class="container">
-        <h1>Nhập Biển Số Xe (Hoặc Upload Ảnh) Để Ghi Nhận Xe Vào</h1>
+{% load static %} {# Giữ lại nếu bạn dùng static files cụ thể trong block này, ví dụ cho ảnh placeholder #}
+{% load humanize %} {# Nếu bạn có ý định dùng intcomma hoặc các filter khác từ humanize trong trang này #}
 
+{% block title %}Kiểm Tra Biển Số / Ghi Nhận Xe Vào{% endblock %}
+
+{% block extra_head %}
+{# Thêm CSS riêng cho trang này nếu cần. Ví dụ: #}
+<style>
+    #image_preview_container { 
+        margin-top: 1.5rem; /* Bulma: mt-4 hoặc mt-5 */
+        margin-bottom: 1.5rem; /* Bulma: mb-4 hoặc mb-5 */
+        text-align: center; 
+        border: 1px dashed #dbdbdb; /* Bulma: has-border-dashed */
+        padding: 1rem; 
+        min-height: 100px;
+        border-radius: 4px;
+    }
+    #image_preview { 
+        max-width: 100%; 
+        max-height: 300px; 
+        border: 1px solid #dbdbdb; /* Bulma: has-border */
+        display: none; /* Ẩn ban đầu */
+        margin: auto;
+        border-radius: 4px;
+    }
+    .section{
+        max-width: 60%;
+        margin-left: auto;
+        margin-right: auto;
+
+    }
+    /* Sử dụng các class của Bulma cho form nếu có thể */
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section"  >
+    <div class="container">
+        <h1 class="title is-3">Nhập Biển Số Xe (Hoặc Upload Ảnh) Để Ghi Nhận Xe Vào</h1>
+        
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-
-            <div>
-                <label for="bien_so">Nhập biển số xe (nếu không upload ảnh):</label>
-                <input type="text" id="bien_so" name="bien_so" value="{{ bien_so_da_nhap|default_if_none:'' }}" placeholder="Ví dụ: 29A1-12345">
+            
+            <div class="field">
+                <label class="label" for="bien_so">Nhập biển số xe (nếu không upload ảnh):</label>
+                <div class="control">
+                    <input class="input" type="text" id="bien_so" name="bien_so" value="{{ bien_so_da_nhap|default_if_none:'' }}" placeholder="Ví dụ: 29A1-12345">
+                </div>
             </div>
 
-            <hr>
+            <div class="field mt-4"> {# Thêm class mt-4 (margin-top) của Bulma #}
+                <label class="label" for="image_upload">Hoặc Upload ảnh biển số:</label>
+                <div class="control">
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" id="image_upload" name="image_upload" accept="image/*" onchange="previewImage(event)">
+                            <span class="file-cta">
 
-            <div>
-                <label for="image_upload">Hoặc Upload ảnh biển số:</label>
-                <input type="file" id="image_upload" name="image_upload" accept="image/*">
+                                <span class="file-label">
+                                    Chọn file…
+                                </span>
+                            </span>
+                            <span class="file-name" id="file-name-display">
+                                Chưa có file nào được chọn
+                            </span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
-            <hr>
-            <button type="submit">Gửi Thông Tin</button>
+            <div id="image_preview_container">
+                <img id="image_preview" src="#" alt="Xem trước ảnh upload">
+            </div>
+            
+            <div class="field mt-5"> {# Thêm class mt-5 của Bulma #}
+                <div class="control">
+                    <button type="submit" class="button is-primary is-fullwidth is-medium">Gửi Thông Tin</button>
+                </div>
+            </div>
         </form>
 
         {% if thong_bao_thanh_cong_text and thoi_gian_su_kien %}
-            <p class="message success">{{ thong_bao_thanh_cong_text }} {{ thoi_gian_su_kien|localtime|date:"Y-m-d H:i:s" }}</p>
+            <div class="notification is-success mt-4">
+                {{ thong_bao_thanh_cong_text }} {{ thoi_gian_su_kien|localtime|date:"Y-m-d H:i:s" }}
+            </div>
         {% elif thong_bao_thanh_cong_text %}
-            <p class="message success">{{ thong_bao_thanh_cong_text }}</p>
+            <div class="notification is-success mt-4">
+                {{ thong_bao_thanh_cong_text }}
+            </div>
         {% endif %}
 
         {% if thong_bao_text and thoi_gian_su_kien %}
-            <p class="message info">{{ thong_bao_text }} {{ thoi_gian_su_kien|localtime|date:"Y-m-d H:i:s" }}</p>
+            <div class="notification is-info mt-4">
+                {{ thong_bao_text }} {{ thoi_gian_su_kien|localtime|date:"Y-m-d H:i:s" }}
+            </div>
         {% elif thong_bao_text %}
-             <p class="message info">{{ thong_bao_text }}</p>
+             <div class="notification is-info mt-4">
+                {{ thong_bao_text }}
+            </div>
         {% endif %}
 
         {% if thong_bao_loi %}
-            <p class="message error">{{ thong_bao_loi }}</p>
+            <div class="notification is-danger mt-4">
+                {{ thong_bao_loi }}
+            </div>
         {% endif %}
 
-        <hr>
-        <p><a href="{% url 'admin:index' %}">Đến trang Admin</a></p>
-        <p><a href="{% url 'parking_management:kiem_tra_bien_so' %}">Làm mới trang / Nhập biển số khác</a></p>
+        {# Các link điều hướng có thể không cần thiết ở đây nữa nếu đã có trong navbar của base_user.html #}
+        {# Bạn có thể giữ lại link "Làm mới trang" nếu thấy hữu ích #}
+        <div class="columns is-centered mt-5">
+            <div class="column is-narrow">
+                <a href="{% url 'parking_management:kiem_tra_bien_so' %}" class="button is-light">Nhập Lại / Làm Mới Form</a>
+            </div>
+        </div>
+
     </div>
-</body>
-</html>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function previewImage(event) {
+        var reader = new FileReader();
+        var output = document.getElementById('image_preview');
+        var fileNameDisplay = document.getElementById('file-name-display'); // Lấy element hiển thị tên file
+
+        reader.onload = function(){
+            output.src = reader.result;
+            output.style.display = 'block';
+        };
+
+        if (event.target.files[0]) {
+            reader.readAsDataURL(event.target.files[0]);
+            if (fileNameDisplay) { // Cập nhật tên file nếu element tồn tại
+                fileNameDisplay.textContent = event.target.files[0].name;
+            }
+        } else {
+            output.src = "#"; // Reset src
+            output.style.display = 'none';
+            if (fileNameDisplay) { // Reset tên file nếu không có file nào được chọn
+                fileNameDisplay.textContent = "Chưa có file nào được chọn";
+            }
+        }
+    }
+
+    // Thêm script để cập nhật tên file cho Bulma file input khi trang tải xong
+    // hoặc khi người dùng chọn file (đã có trong onchange)
+    const fileInput = document.getElementById('image_upload');
+    if (fileInput) {
+      fileInput.onchange = previewImage; // Gán hàm previewImage cho sự kiện onchange
+    }
+</script>
+{% endblock %}
