@@ -93,6 +93,7 @@ class ParkingHistory(models.Model):
     EntryFaceImagePath = models.CharField(max_length=255, null=True, blank=True)
     ExitVehicleImagePath = models.CharField(max_length=255, null=True, blank=True)
     ExitFaceImagePath = models.CharField(max_length=255, null=True, blank=True)
+    EntryOcrReadyImagePath = models.CharField(max_length=255, null=True, blank=True)  # Ví dụ trường mới
     CalculatedFee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     PerTurnRuleAppliedID = models.ForeignKey(PerTurnTicketRules, on_delete=models.SET_NULL, null=True, blank=True)
     WasMonthlyTicketUsed = models.BooleanField(default=False)

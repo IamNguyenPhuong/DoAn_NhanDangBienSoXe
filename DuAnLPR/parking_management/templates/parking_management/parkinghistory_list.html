@@ -1,5 +1,5 @@
 {% extends "parking_management/base_user.html" %}
-{% load humanize tz %}
+{% load humanize tz static %} {# Thêm static nếu bạn dùng icon từ static files #}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -7,7 +7,9 @@
 <section class="section">
     <div class="container">
         <h2 class="title is-3">{{ page_title }}</h2>
-
+        <p class="subtitle is-6 has-text-grey mb-4">
+            <em>Danh sách được sắp xếp theo thời gian ra mới nhất, sau đó đến thời gian vào mới nhất.</em>
+        </p>
         {# Form tìm kiếm đơn giản #}
         <form method="get" class="mb-4">
             <div class="field has-addons">
@@ -39,35 +41,47 @@
                     <thead>
                         <tr>
                             <th>ID Lượt</th>
-                            <th>Biển Số Vào</th>
+                            <th>Biển Số Xe</th>
                             <th>Chủ Xe / Loại</th>
                             <th>TG Vào</th>
                             <th>TG Ra</th>
-                            <th>Biển Số Ra</th>
                             <th>Phí (VND)</th>
                             <th>Vé Tháng</th>
                             <th>Trạng Thái</th>
-                            {# <th>Ảnh Vào</th> #}
-                            {# <th>Ảnh Ra</th> #}
+                            <th>Xem Ảnh Vào</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for record in page_obj.object_list %}
                         <tr>
                             <td>{{ record.RecordID }}</td>
-                            <td><strong>{{ record.ProcessedLicensePlateEntry|default_if_none:"N/A" }}</strong></td>
+                            <td>
+                                <strong>
+                                    {% if record.VehicleID and record.VehicleID.BienSoXe %}
+                                        {{ record.VehicleID.BienSoXe }}
+                                    {% elif record.ProcessedLicensePlateEntry %}
+                                        {{ record.ProcessedLicensePlateEntry }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </strong>
+                                {% if record.ProcessedLicensePlateExit and record.ProcessedLicensePlateExit != record.ProcessedLicensePlateEntry and not record.VehicleID %}
+                                    <br><small style="color: #7a7a7a;">(Ra: {{ record.ProcessedLicensePlateExit }})</small>
+                                {% elif record.ProcessedLicensePlateExit and record.VehicleID and record.ProcessedLicensePlateExit != record.VehicleID.BienSoXe %}
+                                     <br><small style="color: #7a7a7a;">(Ra: {{ record.ProcessedLicensePlateExit }})</small>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if record.VehicleID %}
                                     {{ record.VehicleID.KhachThueID.HoVaTen|default_if_none:"(Khách thuê không tên)" }}
                                     <br><small>({{ record.VehicleID.VehicleTypeID.TypeName }})</small>
                                 {% else %}
                                     <span class="tag is-light">Khách vãng lai</span>
-                                    <br><small>(Xe máy)</small> {# Giả định khách lạ là xe máy #}
+                                    <br><small>(Xe máy)</small>
                                 {% endif %}
                             </td>
                             <td>{{ record.EntryTime|localtime|date:"H:i:s d/m/Y" }}</td>
                             <td>{{ record.ExitTime|localtime|date:"H:i:s d/m/Y"|default_if_none:"-" }}</td>
-                            <td>{{ record.ProcessedLicensePlateExit|default_if_none:"-" }}</td>
                             <td>{{ record.CalculatedFee|floatformat:0|intcomma|default_if_none:"-" }}</td>
                             <td>
                                 {% if record.WasMonthlyTicketUsed %}
@@ -85,13 +99,32 @@
                                     {{ record.Status|default_if_none:"-" }}
                                 {% endif %}
                             </td>
+                            <td>
+                                {% if record.EntryVehicleImagePath %}
+                                    <a href="{{ MEDIA_URL }}{{ record.EntryVehicleImagePath }}" target="_blank" class="button is-small is-link is-outlined">
+                                        Ảnh Gốc Vào
+                                    </a>
+                                {% endif %}
+                                {# Nếu bạn có lưu ảnh đã xử lý cho OCR và muốn hiển thị #}
+                                {# Giả sử trường đó tên là EntryOcrReadyImagePath trong model ParkingHistory #}
+                                {% if record.EntryOcrReadyImagePath %}
+                                    <a href="{{ MEDIA_URL }}{{ record.EntryOcrReadyImagePath }}" target="_blank" class="button is-small is-primary is-outlined mt-1">
+                                        Ảnh OCR Vào
+                                    </a>
+                                {% endif %}
+                                 {% if record.ExitVehicleImagePath %} {# Tương tự cho ảnh ra nếu có #}
+                                    <a href="{{ MEDIA_URL }}{{ record.ExitVehicleImagePath }}" target="_blank" class="button is-small is-link is-outlined mt-1">
+                                        Ảnh Gốc Ra
+                                    </a>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
-            {# Phân trang #}
+             {# Phân trang #}
             <nav class="pagination is-centered mt-5" role="navigation" aria-label="pagination">
                 <ul class="pagination-list">
                     {% if page_obj.has_previous %}
@@ -123,5 +156,3 @@
     </div>
 </section>
 {% endblock %}
-
-{# CÁC DÒNG CHÚ THÍCH RỖNG {# #} ĐÃ ĐƯỢC XÓA Ở ĐÂY NẾU CÓ #}

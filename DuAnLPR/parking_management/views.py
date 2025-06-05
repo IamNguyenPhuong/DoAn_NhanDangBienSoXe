@@ -394,7 +394,8 @@ def xe_ra_khoi_bai_view(request):
 # --- Các View CRUD cho KhachThue ---
 @login_required
 def khachthue_list_view(request):
-    danh_sach_khach_thue = KhachThue.objects.all().order_by('HoVaTen')
+    # Sắp xếp theo KhachThueID tăng dần
+    danh_sach_khach_thue = KhachThue.objects.all().order_by('KhachThueID')
     context = {'danh_sach_khach_thue': danh_sach_khach_thue}
     return render(request, 'parking_management/khachthue_list.html', context)
 
@@ -444,7 +445,7 @@ def khachthue_delete_view(request, khachthue_id):
 # --- Các View CRUD cho Vehicle ---
 @login_required
 def vehicle_list_view(request):
-    danh_sach_xe = Vehicle.objects.select_related('KhachThueID', 'VehicleTypeID').all().order_by('BienSoXe')
+    danh_sach_xe = Vehicle.objects.select_related('KhachThueID', 'VehicleTypeID').all().order_by('VehicleID')
     context = {'danh_sach_xe': danh_sach_xe}
     return render(request, 'parking_management/vehicle_list.html', context)
 
@@ -493,7 +494,7 @@ def vehicle_delete_view(request, vehicle_id):
 # --- Các View CRUD cho VehicleTypes ---
 @login_required
 def vehicletype_list_view(request):
-    danh_sach_loai_xe = VehicleTypes.objects.all().order_by('TypeName')
+    danh_sach_loai_xe = VehicleTypes.objects.all().order_by('VehicleTypeID')
     context = {'danh_sach_loai_xe': danh_sach_loai_xe}
     return render(request, 'parking_management/vehicletype_list.html', context)
 
@@ -546,8 +547,7 @@ def vehicletype_delete_view(request, vehicletype_id):
 # --- Các View CRUD cho MonthlyTicketRules ---
 @login_required
 def monthlyticketrule_list_view(request):
-    danh_sach_quy_tac = MonthlyTicketRules.objects.select_related('VehicleTypeID').all().order_by(
-        'VehicleTypeID__TypeName', 'PricePerMonth')
+    danh_sach_quy_tac = MonthlyTicketRules.objects.select_related('VehicleTypeID').all().order_by('MonthlyRuleID')
     context = {'danh_sach_quy_tac': danh_sach_quy_tac}
     return render(request, 'parking_management/monthlyticketrule_list.html', context)
 
@@ -602,8 +602,11 @@ def monthlyticketrule_delete_view(request, rule_id):
 @login_required
 def perturnticketrule_list_view(request):
     danh_sach_quy_tac = PerTurnTicketRules.objects.select_related('VehicleTypeID').all().order_by(
-        'VehicleTypeID__TypeName', 'TimeFrom')
-    context = {'danh_sach_quy_tac': danh_sach_quy_tac}
+        'PerTurnRuleID') # Sửa ở đây: sắp xếp theo ID của VehicleTypeID trước
+    context = {
+        'danh_sach_quy_tac': danh_sach_quy_tac,
+        'page_title': 'Danh Sách Quy Tắc Giá Vé Lượt' # Thêm page_title nếu template của bạn dùng
+    }
     return render(request, 'parking_management/perturnticketrule_list.html', context)
 
 
@@ -662,7 +665,7 @@ def parkinghistory_list_view(request):
         'VehicleID__VehicleTypeID',
         'PerTurnRuleAppliedID',
         'PerTurnRuleAppliedID__VehicleTypeID'
-    ).order_by('-EntryTime')
+    ).order_by('-ExitTime', '-EntryTime')
 
     query = request.GET.get('q', '')
     if query:

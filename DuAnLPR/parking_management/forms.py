@@ -8,7 +8,7 @@ class KhachThueForm(forms.ModelForm):
         fields = ['HoVaTen', 'NgaySinh', 'GioiTinh', 'SoDienThoai']
         labels = {
             'HoVaTen': 'Họ và Tên',
-            'NgaySinh': 'Ngày Sinh (YYYY-MM-DD)',
+            'NgaySinh': 'Ngày Sinh',
             'GioiTinh': 'Giới Tính',
             'SoDienThoai': 'Số Điện Thoại',
         }

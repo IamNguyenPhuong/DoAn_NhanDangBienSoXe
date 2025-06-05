@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container section">
-    <h2>{{ page_title }}</h2>
+    <h2 class="title is-3">{{ page_title }}</h2>
     <form method="post">
         {% csrf_token %}
         {{ form.as_p }} {# Render form với các đoạn <p> #}

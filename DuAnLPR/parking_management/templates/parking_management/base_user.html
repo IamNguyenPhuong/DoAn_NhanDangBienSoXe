@@ -50,6 +50,9 @@
         .navbar-dropdown .navbar-item:hover {
             background-color: #f5f5f5; /* Màu hover cho item trong dropdown */
         }
+        span.navbar-item{
+               margin-bottom: .5rem;
+        }
     </style>
     {% block extra_head %}{% endblock %} {# Khối để thêm CSS hoặc JS riêng cho từng trang con #}
 </head>
@@ -127,8 +130,6 @@
                 <div class="navbar-end">
                     <div class="navbar-item">
                         {% if user.is_authenticated %}
-
-
                             <div class="buttons">
                                 <span class="navbar-item">Xin chào, {{ user.username }}!</span>
                                 <a class="button is-light" href="{% url 'parking_management:logout_user' %}">
