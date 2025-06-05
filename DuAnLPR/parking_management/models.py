@@ -1,5 +1,12 @@
 from django.db import models
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 
+# Hàm kiểm tra số điện thoạ
+phone_regex = RegexValidator(
+    regex=r'^\d{10}$',
+    message="Số điện thoại phải có đúng 10 chữ số."
+)
 
 # 1. Bảng Admin - Chúng ta sẽ sử dụng hệ thống User tích hợp của Django sau này
 #   nếu cần tùy biến. Tạm thời không tạo model Admin riêng ở đây để tránh
@@ -9,16 +16,26 @@ from django.db import models
 # 2. Bảng KhachThue (Khách Thuê/Cư Dân)
 class KhachThue(models.Model):
     KhachThueID = models.AutoField(primary_key=True)
-    HoVaTen = models.CharField(max_length=255)  # Sử dụng VARCHAR, DB đã là utf8mb4
-    NgaySinh = models.DateField(null=True, blank=True)
-    GioiTinh = models.CharField(max_length=10, null=True, blank=True)  # 'Nam', 'Nữ'
-    SoDienThoai = models.CharField(max_length=20, null=True, blank=True)
+    HoVaTen = models.CharField(max_length=255)
+    NgaySinh = models.DateField()
+    GIOI_TINH_CHOICES = [
+        ('Nam', 'Nam'),
+        ('Nữ', 'Nữ'),
+        ('Khác', 'Khác'),
+    ]
+    GioiTinh = models.CharField(max_length=10, choices=GIOI_TINH_CHOICES)
+
+    # Bỏ null=True, blank=True và thêm validators
+    SoDienThoai = models.CharField(
+        max_length=10,  # Giới hạn độ dài trong CSDL là 10
+        validators=[phone_regex]  # Áp dụng quy tắc kiểm tra
+    )
 
     def __str__(self):
         return self.HoVaTen
 
     class Meta:
-        db_table = 'KhachThue'  # Đặt tên bảng tường minh nếu muốn
+        db_table = 'KhachThue'
 
 
 # 3. Bảng VehicleTypes (Loại Xe)

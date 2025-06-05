@@ -1,20 +1,21 @@
 from django import forms
 from .models import KhachThue, Vehicle, VehicleTypes, MonthlyTicketRules, PerTurnTicketRules
-
+from datetime import datetime
 class KhachThueForm(forms.ModelForm):
-    # ... (code KhachThueForm của bạn giữ nguyên) ...
     class Meta:
         model = KhachThue
         fields = ['HoVaTen', 'NgaySinh', 'GioiTinh', 'SoDienThoai']
         labels = {
             'HoVaTen': 'Họ và Tên',
-            'NgaySinh': 'Ngày Sinh',
+            'NgaySinh': 'Ngày Sinh', # Đã sửa
             'GioiTinh': 'Giới Tính',
             'SoDienThoai': 'Số Điện Thoại',
         }
         widgets = {
-            'NgaySinh': forms.DateInput(attrs={'type': 'date'}),
-            'GioiTinh': forms.Select(choices=[('', 'Chọn giới tính'), ('Nam', 'Nam'), ('Nữ', 'Nữ')]),
+            'HoVaTen': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nhập họ và tên'}),
+            'NgaySinh': forms.DateInput(attrs={'type': 'date', 'class': 'input'}),
+            'GioiTinh': forms.Select(attrs={'class': 'input'}), # Django sẽ tự dùng choices từ model
+            'SoDienThoai': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nhập đúng 10 chữ số', 'type': 'tel'}),
         }
 
 class VehicleForm(forms.ModelForm):
@@ -121,3 +122,28 @@ class PerTurnTicketRuleForm(forms.ModelForm):
             self.add_error('TimeTo', "Giờ Kết Thúc Ca phải sau Giờ Bắt Đầu Ca (cho ca trong ngày).")
 
         return cleaned_data
+
+class DateSelectionForm(forms.Form):
+    selected_date = forms.DateField(
+        label='Chọn ngày xem thống kê',
+        widget=forms.DateInput(attrs={'type': 'date'}),
+        required=True
+    )
+
+class MonthYearSelectionForm(forms.Form):
+    # Tạo danh sách các tháng
+    MONTH_CHOICES = [(str(i), datetime(2000, i, 1).strftime('%B')) for i in range(1, 13)]
+    # Tạo danh sách các năm (ví dụ từ 5 năm trước đến năm hiện tại + 1)
+    current_year = datetime.now().year
+    YEAR_CHOICES = [(str(i), str(i)) for i in range(current_year - 5, current_year + 2)]
+
+    selected_month = forms.ChoiceField(
+        label='Chọn tháng',
+        choices=MONTH_CHOICES,
+        initial=str(datetime.now().month) # Tháng hiện tại làm mặc định
+    )
+    selected_year = forms.ChoiceField(
+        label='Chọn năm',
+        choices=YEAR_CHOICES,
+        initial=str(current_year) # Năm hiện tại làm mặc định
+    )

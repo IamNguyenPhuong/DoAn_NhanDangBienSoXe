@@ -1,0 +1,124 @@
+{% extends "parking_management/base_user.html" %}
+{% load humanize tz %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Tùy chỉnh thêm nếu cần */
+    .field.has-addons .control .button,
+    .field.has-addons .control .input,
+    .field.has-addons .control .select select {
+        height: 2.5em; /* Đảm bảo chiều cao đồng nhất cho input và button */
+    }
+    .field.has-addons .control.is-date-label {
+    display: flex;
+    justify-content: flex-start; /* Căn chỉnh sang trái */
+    align-items: center; /* Căn giữa theo chiều dọc */
+    padding-right: 0.75em; /* Khoảng cách với input date */
+    font-size: 1em; /* Kích thước chữ cho label */
+
+}
+    .field.has-addons.has-addons-centered {
+    justify-content: flex-start;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">{{ page_title }}</h2>
+
+        <form method="get" class="mb-5">
+            <div class="field has-addons has-addons-centered"> {# Thêm has-addons-centered để căn giữa cụm #}
+                <div class="control is-date-label"> {# Class mới cho label #}
+                    {# Hiển thị label của form, Bulma không có class label riêng cho has-addons #}
+                    <label for="{{ form.selected_date.auto_id }}" class="label" style="margin-bottom: 0;">{{ form.selected_date.label }}</label>
+                </div>
+                <div class="control">
+                    <input class="input"
+                           type="date"
+                           name="{{ form.selected_date.html_name }}" {# Sử dụng html_name cho input name #}
+                           id="{{ form.selected_date.auto_id }}"
+                           value="{{ selected_date|date:'Y-m-d'|default_if_none:'' }}">
+                </div>
+                <div class="control">
+                    <button type="submit" class="button is-info">Xem Thống Kê</button>
+                </div>
+            </div>
+            {% if form.selected_date.errors %}
+                <div class="field"> {# Bọc lỗi trong field để có khoảng cách #}
+                    <p class="help is-danger has-text-centered">{{ form.selected_date.errors|first }}</p>
+                </div>
+            {% endif %}
+        </form>
+
+        {% if selected_date %}
+            <h3 class="title is-4">Kết quả cho ngày: {{ selected_date|date:"d/m/Y" }}</h3>
+            <div class="notification is-success">
+                <p class="title is-5">Tổng doanh thu vé lượt: <strong>{{ tong_doanh_thu_ngay|floatformat:0|intcomma }} VND</strong></p>
+            </div>
+
+            {% if danh_sach_luot_gui %}
+                <h4 class="title is-5 mt-5">Chi tiết các lượt gửi (vé lượt):</h4>
+                <div class="table-container">
+                    <table class="table is-striped is-fullwidth is-hoverable is-narrow">
+                        <thead>
+                            <tr>
+                                <th>ID Lượt</th>
+                                <th>Biển Số Xe</th>
+                                <th>Loại Xe</th>
+                                <th>TG Vào</th>
+                                <th>TG Ra</th>
+                                <th>Phí Thu (VND)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in danh_sach_luot_gui %}
+                            <tr>
+                                <td>{{ record.RecordID }}</td>
+                                <td>
+                                    <strong>
+                                        {% if record.ProcessedLicensePlateExit %}
+                                            {{ record.ProcessedLicensePlateExit }}
+                                        {% elif record.ProcessedLicensePlateEntry %}
+                                            {{ record.ProcessedLicensePlateEntry }}
+                                        {% elif record.VehicleID and record.VehicleID.BienSoXe %}
+                                            {{ record.VehicleID.BienSoXe }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </strong>
+                                </td>
+                                <td>
+                                    {% if record.VehicleID and record.VehicleID.VehicleTypeID %}
+                                        {{ record.VehicleID.VehicleTypeID.TypeName }}
+                                    {% else %}
+                                        Xe máy
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.EntryTime|localtime|date:"H:i d/m/Y" }}</td>
+                                <td>{{ record.ExitTime|localtime|date:"H:i d/m/Y" }}</td>
+                                <td>{{ record.CalculatedFee|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="mt-4">Không có lượt gửi xe (vé lượt) nào có phí trong ngày này.</p>
+            {% endif %}
+        {% else %}
+            {% if request.GET.selected_date == '' and not form.errors %} {# Đã submit nhưng ngày trống #}
+                 <p class="mt-4 has-text-danger">Vui lòng chọn một ngày để xem thống kê.</p>
+            {% elif request.GET and not form.errors and not selected_date %} {# Đã submit ngày không có dữ liệu #}
+                 <p class="mt-4">Không có dữ liệu cho ngày đã chọn.</p>
+            {% elif not request.GET %} {# Lần đầu vào trang #}
+                 <p class="mt-4">Chọn một ngày để xem thống kê doanh thu.</p>
+            {% endif %}
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-5">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

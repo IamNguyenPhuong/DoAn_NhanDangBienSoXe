@@ -1,0 +1,126 @@
+{% extends "parking_management/base_user.html" %}
+{% load humanize tz %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title is-3">{{ page_title }}</h2>
+
+        <form method="get" class="mb-5">
+            <div class="field is-grouped">
+                <div class="control">
+                    {{ form.selected_month.label_tag }}
+                    <div class="select">
+                        {{ form.selected_month }}
+                    </div>
+                </div>
+                <div class="control">
+                    {{ form.selected_year.label_tag }}
+                    <div class="select">
+                        {{ form.selected_year }}
+                    </div>
+                </div>
+                <div class="control">
+                    <label class="label">&nbsp;</label>
+                    <button type="submit" class="button is-info">Xem Thống Kê</button>
+                </div>
+            </div>
+            {% if form.errors %}
+                <div class="notification is-danger">
+                    <p>Vui lòng chọn tháng và năm hợp lệ.</p>
+                </div>
+            {% endif %}
+        </form>
+
+        {% if selected_month and selected_year %}
+            <h3 class="title is-4">Kết quả cho: Tháng {{ selected_month|date:"m" }} Năm {{ selected_year }}</h3>
+
+            <div class="notification is-link is-light">
+                <p class="title is-5">Tổng doanh thu từ Vé Lượt:
+                    <strong>{{ tong_doanh_thu_ve_luot_thang|floatformat:0|intcomma }} VND</strong>
+                </p>
+            </div>
+
+            {# PHẦN NÀY TÔI GIỮ NGUYÊN NHƯ TRONG FILE BẠN GỬI, VÌ LOGIC VÉ THÁNG CHƯA HOÀN THIỆN TRONG VIEW #}
+            {# {% if doanh_thu_tu_ve_thang is not None %}
+            <div class="notification is-primary is-light mt-4">
+                <p class="title is-5">Tổng doanh thu từ Vé Tháng (ước tính):
+                    <strong>{{ doanh_thu_tu_ve_thang|floatformat:0|intcomma }} VND</strong>
+                    (dựa trên {{ so_luong_ve_thang_ban_duoc }} xe đăng ký)
+                </p>
+            </div>
+            <div class="notification is-success mt-4">
+                <p class="title is-5">TỔNG DOANH THU THÁNG (Lượt + Tháng ước tính):
+                    <strong>{{ tong_doanh_thu_thang|floatformat:0|intcomma }} VND</strong>
+                </p>
+            </div>
+            {% endif %} #}
+
+            {% if danh_sach_luot_gui_thang %}
+                <h4 class="title is-5 mt-5">Chi tiết các lượt gửi (vé lượt) trong tháng:</h4>
+                <p> (Hiển thị {{ danh_sach_luot_gui_thang.count }} lượt)</p>
+
+                <div class="table-container mt-3"> {# Thêm table-container và margin-top #}
+                    <table class="table is-striped is-fullwidth is-hoverable is-narrow">
+                        <thead>
+                            <tr>
+                                <th>ID Lượt</th>
+                                <th>Biển Số Xe</th> {# ĐỔI TÊN CỘT VÀ SỬA LOGIC HIỂN THỊ #}
+                                <th>Loại Xe</th>
+                                <th>TG Vào</th>
+                                <th>TG Ra</th>
+                                <th>Phí Thu (VND)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in danh_sach_luot_gui_thang %}
+                            <tr>
+                                <td>{{ record.RecordID }}</td>
+                                <td>
+                                    <strong>
+                                        {# Ưu tiên biển số lúc ra, rồi đến lúc vào, cuối cùng là biển số đăng ký nếu có #}
+                                        {% if record.ProcessedLicensePlateExit %}
+                                            {{ record.ProcessedLicensePlateExit }}
+                                        {% elif record.ProcessedLicensePlateEntry %}
+                                            {{ record.ProcessedLicensePlateEntry }}
+                                        {% elif record.VehicleID and record.VehicleID.BienSoXe %}
+                                            {{ record.VehicleID.BienSoXe }}
+                                        {% else %}
+                                            N/A
+                                        {% endif %}
+                                    </strong>
+                                </td>
+                                <td>
+                                    {% if record.VehicleID and record.VehicleID.VehicleTypeID %}
+                                        {{ record.VehicleID.VehicleTypeID.TypeName }}
+                                    {% else %}
+                                        Xe máy {# Giả định cho khách vãng lai #}
+                                    {% endif %}
+                                </td>
+                                <td>{{ record.EntryTime|localtime|date:"H:i d/m/Y" }}</td>
+                                <td>{{ record.ExitTime|localtime|date:"H:i d/m/Y" }}</td>
+                                <td>{{ record.CalculatedFee|floatformat:0|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                 {% if form.is_valid %}
+                    <p class="mt-4">Không có lượt gửi xe (vé lượt) nào có phí trong tháng này.</p>
+                 {% endif %}
+            {% endif %}
+
+        {% else %}
+            {% if request.GET.selected_month and request.GET.selected_year and not form.errors %} {# Đã submit nhưng có thể tháng/năm không có dữ liệu hoặc form không valid ở lần đầu #}
+                <p class="mt-4">Vui lòng chọn tháng và năm hợp lệ hoặc không có dữ liệu cho lựa chọn này.</p>
+            {% elif not request.GET %} {# Lần đầu vào trang #}
+                 <p class="mt-4">Chọn tháng và năm để xem thống kê doanh thu.</p>
+            {% endif %}
+        {% endif %}
+        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-5">Quay lại Trang chủ</a></p>
+    </div>
+</section>
+{% endblock %}

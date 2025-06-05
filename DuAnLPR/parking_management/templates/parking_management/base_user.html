@@ -118,6 +118,19 @@
                                 </a>
                             </div>
                         </div>
+                        <div class="navbar-item has-dropdown is-hoverable">
+    <a class="navbar-link {% if request.resolver_match.url_name in 'thong_ke_doanh_thu_ngay,thong_ke_doanh_thu_thang' %}is-active{% endif %}">
+        Thống Kê Doanh Thu
+    </a>
+    <div class="navbar-dropdown">
+        <a class="navbar-item" href="{% url 'parking_management:thong_ke_doanh_thu_ngay' %}"> {# THAY THẾ HREF #}
+            Doanh Thu Theo Ngày
+        </a>
+        <a class="navbar-item" href="{% url 'parking_management:thong_ke_doanh_thu_thang' %}"> {# Sẽ cập nhật URL sau khi tạo view #}
+            Doanh Thu Theo Tháng
+        </a>
+    </div>
+</div>
 
                         {# Link Admin Django cho mobile, được bao trong if user.is_authenticated chung #}
                         <hr class="navbar-divider is-hidden-desktop">

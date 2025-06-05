@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 import os
-from django.conf import settings  # For MEDIA_ROOT
+from django.conf import settings
 import uuid
 import pytesseract
-
 
 # --- QUAN TRỌNG: CẤU HÌNH TESSERACT ---
 # Nếu Tesseract không nằm trong PATH của môi trường server,
@@ -25,7 +24,7 @@ def save_uploaded_image_and_recognize_plate(uploaded_file):
         if not original_extension:
             original_extension = ".jpg"  # Mặc định nếu không có phần mở rộng
 
-        unique_id = uuid.uuid4().hex[:8]
+        unique_id = uuid.uuid4().hex[:11]
         filename_to_save = f"{original_filename_part}_{unique_id}{original_extension}"
 
         save_dir = os.path.join(settings.MEDIA_ROOT, 'vehicle_entries')
@@ -98,7 +97,7 @@ def save_uploaded_image_and_recognize_plate(uploaded_file):
                                                    cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
                 try:
-                    char_whitelist = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789-'
+                    char_whitelist = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789-.'
                     custom_config = f'--oem 3 --psm 11 -c tessedit_char_whitelist={char_whitelist}'
 
                     ocr_text = pytesseract.image_to_string(ocr_ready_img, lang='eng', config=custom_config)

@@ -29,12 +29,12 @@ urlpatterns = [
     path('loai-xe/them/', views.vehicletype_create_view, name='vehicletype_create'),
     path('loai-xe/sua/<int:vehicletype_id>/', views.vehicletype_update_view, name='vehicletype_update'),
     path('loai-xe/xoa/<int:vehicletype_id>/', views.vehicletype_delete_view, name='vehicletype_delete'),
-# URLs cho quản lý MonthlyTicketRules
+    # URLs cho quản lý MonthlyTicketRules
     path('gia-ve-thang/', views.monthlyticketrule_list_view, name='monthlyticketrule_list'),
     path('gia-ve-thang/them/', views.monthlyticketrule_create_view, name='monthlyticketrule_create'),
     path('gia-ve-thang/sua/<int:rule_id>/', views.monthlyticketrule_update_view, name='monthlyticketrule_update'),
     path('gia-ve-thang/xoa/<int:rule_id>/', views.monthlyticketrule_delete_view, name='monthlyticketrule_delete'),
-# URLs cho quản lý PerTurnTicketRules
+    # URLs cho quản lý PerTurnTicketRules
     path('gia-ve-luot/', views.perturnticketrule_list_view, name='perturnticketrule_list'),
     path('gia-ve-luot/them/', views.perturnticketrule_create_view, name='perturnticketrule_create'),
     path('gia-ve-luot/sua/<int:rule_id>/', views.perturnticketrule_update_view, name='perturnticketrule_update'),
@@ -42,4 +42,9 @@ urlpatterns = [
 
     # URL cho xem Lịch sử Ra/Vào
     path('lich-su-ra-vao/', views.parkinghistory_list_view, name='parkinghistory_list'),
+
+    # URL cho Thống kê Doanh thu
+    path('thong-ke/doanh-thu-ngay/', views.thong_ke_doanh_thu_ngay_view, name='thong_ke_doanh_thu_ngay'),
+    path('thong-ke/doanh-thu-thang/', views.thong_ke_doanh_thu_thang_view, name='thong_ke_doanh_thu_thang'),
+
 ]
