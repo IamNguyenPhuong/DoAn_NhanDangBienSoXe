@@ -1,5 +1,5 @@
 {% extends "parking_management/base_user.html" %}
-{% load humanize tz static %} {# Thêm static nếu bạn dùng icon từ static files #}
+{% load humanize tz static %}
 
 {% block title %}{{ page_title }}{% endblock %}
 
@@ -7,10 +7,6 @@
 <section class="section">
     <div class="container">
         <h2 class="title is-3">{{ page_title }}</h2>
-        <p class="subtitle is-6 has-text-grey mb-4">
-            <em>Danh sách được sắp xếp theo thời gian ra mới nhất, sau đó đến thời gian vào mới nhất.</em>
-        </p>
-        {# Form tìm kiếm đơn giản #}
         <form method="get" class="mb-4">
             <div class="field has-addons">
                 <div class="control is-expanded">
@@ -49,6 +45,7 @@
                             <th>Vé Tháng</th>
                             <th>Trạng Thái</th>
                             <th>Xem Ảnh Vào</th>
+                            <th>Xem Ảnh Ra</th> {# <-- TIÊU ĐỀ CỘT MỚI #}
                         </tr>
                     </thead>
                     <tbody>
@@ -77,7 +74,11 @@
                                     <br><small>({{ record.VehicleID.VehicleTypeID.TypeName }})</small>
                                 {% else %}
                                     <span class="tag is-light">Khách vãng lai</span>
-                                    <br><small>(Xe máy)</small>
+                                    {% if record.VehicleTypeID %}
+                                        <br><small>({{ record.VehicleTypeID.TypeName }})</small>
+                                    {% else %}
+                                        <br><small>(Xe máy)</small>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             <td>{{ record.EntryTime|localtime|date:"H:i:s d/m/Y" }}</td>
@@ -105,15 +106,16 @@
                                         Ảnh Gốc Vào
                                     </a>
                                 {% endif %}
-                                {# Nếu bạn có lưu ảnh đã xử lý cho OCR và muốn hiển thị #}
-                                {# Giả sử trường đó tên là EntryOcrReadyImagePath trong model ParkingHistory #}
                                 {% if record.EntryOcrReadyImagePath %}
                                     <a href="{{ MEDIA_URL }}{{ record.EntryOcrReadyImagePath }}" target="_blank" class="button is-small is-primary is-outlined mt-1">
                                         Ảnh OCR Vào
                                     </a>
                                 {% endif %}
-                                 {% if record.ExitVehicleImagePath %} {# Tương tự cho ảnh ra nếu có #}
-                                    <a href="{{ MEDIA_URL }}{{ record.ExitVehicleImagePath }}" target="_blank" class="button is-small is-link is-outlined mt-1">
+                            </td>
+                            {# --- CỘT MỚI ĐỂ HIỂN THỊ ẢNH RA --- #}
+                            <td>
+                                 {% if record.ExitVehicleImagePath %}
+                                    <a href="{{ MEDIA_URL }}{{ record.ExitVehicleImagePath }}" target="_blank" class="button is-small is-link is-outlined">
                                         Ảnh Gốc Ra
                                     </a>
                                 {% endif %}
@@ -124,7 +126,6 @@
                 </table>
             </div>
 
-             {# Phân trang #}
             <nav class="pagination is-centered mt-5" role="navigation" aria-label="pagination">
                 <ul class="pagination-list">
                     {% if page_obj.has_previous %}

@@ -1,27 +1,26 @@
 {% extends "parking_management/base_user.html" %}
 {% load tz %}
-{% load static %} {# Giữ lại nếu bạn dùng static files cụ thể trong block này, ví dụ cho ảnh placeholder #}
-{% load humanize %} {# Nếu bạn có ý định dùng intcomma hoặc các filter khác từ humanize trong trang này #}
+{% load static %}
+{% load humanize %}
 
 {% block title %}Kiểm Tra Biển Số / Ghi Nhận Xe Vào{% endblock %}
 
 {% block extra_head %}
-{# Thêm CSS riêng cho trang này nếu cần. Ví dụ: #}
 <style>
-    #image_preview_container { 
-        margin-top: 1.5rem; /* Bulma: mt-4 hoặc mt-5 */
-        margin-bottom: 1.5rem; /* Bulma: mb-4 hoặc mb-5 */
-        text-align: center; 
-        border: 1px dashed #dbdbdb; /* Bulma: has-border-dashed */
-        padding: 1rem; 
+    #image_preview_container {
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        border: 1px dashed #dbdbdb;
+        padding: 1rem;
         min-height: 100px;
         border-radius: 4px;
     }
-    #image_preview { 
-        max-width: 100%; 
-        max-height: 300px; 
-        border: 1px solid #dbdbdb; /* Bulma: has-border */
-        display: none; /* Ẩn ban đầu */
+    #image_preview {
+        max-width: 100%;
+        max-height: 300px;
+        border: 1px solid #dbdbdb;
+        display: none;
         margin: auto;
         border-radius: 4px;
     }
@@ -29,20 +28,18 @@
         max-width: 60%;
         margin-left: auto;
         margin-right: auto;
-
     }
-    /* Sử dụng các class của Bulma cho form nếu có thể */
 </style>
 {% endblock %}
 
 {% block content %}
-<section class="section"  >
+<section class="section">
     <div class="container">
         <h1 class="title is-3">Nhập Biển Số Xe (Hoặc Upload Ảnh) Để Ghi Nhận Xe Vào</h1>
-        
+
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-            
+
             <div class="field">
                 <label class="label" for="bien_so">Nhập biển số xe (nếu không upload ảnh):</label>
                 <div class="control">
@@ -50,14 +47,29 @@
                 </div>
             </div>
 
-            <div class="field mt-4"> {# Thêm class mt-4 (margin-top) của Bulma #}
+            <div class="field mt-4">
+                {# 1. Bỏ text thừa #}
+                <label class="label" for="vehicle_type">Loại xe:</label>
+                <div class="control">
+                    <div class="select is-fullwidth">
+                        <select id="vehicle_type" name="vehicle_type">
+                            {% for type in vehicle_types %}
+                                {# 2. Thêm logic để chọn "Xe máy" làm mặc định #}
+                                <option value="{{ type.VehicleTypeID }}" {% if type.TypeName == 'Xe máy' %}selected{% endif %}>
+                                    {{ type.TypeName }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="field mt-4">
                 <label class="label" for="image_upload">Hoặc Upload ảnh biển số:</label>
                 <div class="control">
                     <div class="file has-name is-fullwidth">
                         <label class="file-label">
                             <input class="file-input" type="file" id="image_upload" name="image_upload" accept="image/*" onchange="previewImage(event)">
                             <span class="file-cta">
-
                                 <span class="file-label">
                                     Chọn file…
                                 </span>
@@ -73,8 +85,8 @@
             <div id="image_preview_container">
                 <img id="image_preview" src="#" alt="Xem trước ảnh upload">
             </div>
-            
-            <div class="field mt-5"> {# Thêm class mt-5 của Bulma #}
+
+            <div class="field mt-5">
                 <div class="control">
                     <button type="submit" class="button is-primary is-fullwidth is-medium">Gửi Thông Tin</button>
                 </div>
@@ -107,8 +119,6 @@
             </div>
         {% endif %}
 
-        {# Các link điều hướng có thể không cần thiết ở đây nữa nếu đã có trong navbar của base_user.html #}
-        {# Bạn có thể giữ lại link "Làm mới trang" nếu thấy hữu ích #}
         <div class="columns is-centered mt-5">
             <div class="column is-narrow">
                 <a href="{% url 'parking_management:kiem_tra_bien_so' %}" class="button is-light">Nhập Lại / Làm Mới Form</a>
@@ -124,7 +134,7 @@
     function previewImage(event) {
         var reader = new FileReader();
         var output = document.getElementById('image_preview');
-        var fileNameDisplay = document.getElementById('file-name-display'); // Lấy element hiển thị tên file
+        var fileNameDisplay = document.getElementById('file-name-display');
 
         reader.onload = function(){
             output.src = reader.result;
@@ -133,23 +143,21 @@
 
         if (event.target.files[0]) {
             reader.readAsDataURL(event.target.files[0]);
-            if (fileNameDisplay) { // Cập nhật tên file nếu element tồn tại
+            if (fileNameDisplay) {
                 fileNameDisplay.textContent = event.target.files[0].name;
             }
         } else {
-            output.src = "#"; // Reset src
+            output.src = "#";
             output.style.display = 'none';
-            if (fileNameDisplay) { // Reset tên file nếu không có file nào được chọn
+            if (fileNameDisplay) {
                 fileNameDisplay.textContent = "Chưa có file nào được chọn";
             }
         }
     }
 
-    // Thêm script để cập nhật tên file cho Bulma file input khi trang tải xong
-    // hoặc khi người dùng chọn file (đã có trong onchange)
     const fileInput = document.getElementById('image_upload');
     if (fileInput) {
-      fileInput.onchange = previewImage; // Gán hàm previewImage cho sự kiện onchange
+      fileInput.onchange = previewImage;
     }
 </script>
 {% endblock %}

@@ -10,34 +10,35 @@
     .vehicle-info {
         margin-top: 1.5rem;
     }
-    .vehicle-info h4 {
-        /* Bạn có thể dùng class subtitle is-5 của Bulma */
-    }
-    .vehicle-info p {
-        margin-bottom: 0.75rem;
-    }
-    .navigation-links-page {
-        margin-top: 2rem;
-        padding-top: 1rem;
-        border-top: 1px solid #eee;
-        text-align: center;
-    }
-    .navigation-links-page a.button {
-        margin: 0 0.25rem;
-    }
     .detail-times {
-        margin-top: 0.5rem; /* Thêm chút khoảng cách */
+        margin-top: 0.5rem;
         padding-top: 0.5rem;
-        border-top: 1px dashed #dbdbdb; /* Đường kẻ ngang mờ */
+        border-top: 1px dashed #dbdbdb;
     }
     .detail-times p {
-        margin-bottom: 0.25rem; /* Giảm khoảng cách giữa các dòng thời gian */
+        margin-bottom: 0.25rem;
     }
     .section{
         max-width: 60%;
         margin-left: auto;
         margin-right: auto;
-
+    }
+    #exit_image_preview_container {
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
+        text-align: center;
+        border: 1px dashed #dbdbdb;
+        padding: 1rem;
+        min-height: 100px;
+        border-radius: 4px;
+        display: none;
+    }
+    #exit_image_preview {
+        max-width: 100%;
+        max-height: 300px;
+        border: 1px solid #dbdbdb;
+        margin: auto;
+        border-radius: 4px;
     }
 </style>
 {% endblock %}
@@ -47,7 +48,7 @@
     <div class="container">
         <h1 class="title is-3">Xử Lý Xe Ra Khỏi Bãi</h1>
 
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="field">
                 <label class="label" for="bien_so_ra">Nhập biển số xe muốn ra:</label>
@@ -56,7 +57,26 @@
                 </div>
             </div>
 
-            {% if not lich_su_gui_xe_hien_tai %} {# Sửa tên biến context #}
+            <div class="field mt-4">
+                <label class="label" for="exit_image_upload">Upload ảnh xe ra:</label>
+                <div class="control">
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="exit_image_upload" id="exit_image_upload" accept="image/*">
+                            <span class="file-cta">
+                                <span class="file-label">Chọn file…</span>
+                            </span>
+                            <span class="file-name" id="exit-file-name-display">Chưa có file nào được chọn</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="exit_image_preview_container">
+                <img id="exit_image_preview" src="#" alt="Xem trước ảnh xe ra">
+            </div>
+
+            {% if not lich_su_gui_xe_hien_tai %}
                 <div class="field mt-4">
                     <div class="control">
                         <button type="submit" name="action_tim_xe" class="button is-info is-fullwidth">Tìm Xe Trong Bãi</button>
@@ -64,26 +84,32 @@
                 </div>
             {% endif %}
 
-            {% if lich_su_gui_xe_hien_tai %} {# Sửa tên biến context #}
-                <div class="vehicle-info notification is-light mt-4">
+            {% if lich_su_gui_xe_hien_tai %}
+                 <div class="vehicle-info notification is-light mt-4">
                     <h4 class="subtitle is-5 has-text-weight-semibold">Thông tin xe đang trong bãi:</h4>
-                    {% if thong_bao_text and thoi_gian_vao %} {# thoi_gian_vao vẫn được dùng ở đây #}
-                    <p>{{ thong_bao_text }} <strong>{{ thoi_gian_vao|localtime|date:"Y-m-d H:i:s" }}</strong></p>
-                    {% elif thong_bao_text %}
-                    <p>{{ thong_bao_text }}</p>
+                    {% if thong_bao_text %}
+                        <p>{{ thong_bao_text }}</p>
                     {% endif %}
 
-                    {% if lich_su_gui_xe_hien_tai.VehicleID %} {# Sửa tên biến context #}
+                    {% if lich_su_gui_xe_hien_tai.EntryTime %}
+                        <p>Vào lúc: <strong>{{ lich_su_gui_xe_hien_tai.EntryTime|localtime|date:"Y-m-d H:i:s" }}</strong></p>
+                    {% endif %}
+
+                    {% if lich_su_gui_xe_hien_tai.VehicleID %}
                         <p>Loại xe: {{ lich_su_gui_xe_hien_tai.VehicleID.VehicleTypeID.TypeName }}</p>
                         <p>Tình trạng vé tháng:
-                            {% if co_ve_thang %}
+                            {% if lich_su_gui_xe_hien_tai.VehicleID.HasMonthlyTicket %}
                                 <span class="tag is-success">CÓ HIỆU LỰC</span>
                             {% else %}
                                 <span class="tag is-warning">KHÔNG hoặc HẾT HẠN</span>
                             {% endif %}
                         </p>
                     {% else %}
-                        <p>Loại xe: Xe máy (Khách vãng lai)</p>
+                         {% if lich_su_gui_xe_hien_tai.VehicleTypeID %}
+                            <p>Loại xe: {{ lich_su_gui_xe_hien_tai.VehicleTypeID.TypeName }} (Khách vãng lai)</p>
+                         {% else %}
+                            <p>Loại xe: Xe máy (Khách vãng lai)</p>
+                         {% endif %}
                     {% endif %}
                     <div class="field mt-4">
                         <div class="control">
@@ -101,10 +127,8 @@
                     <p>Số tiền phải trả: <strong>{{ tien_phai_tra|floatformat:0|intcomma }} VND</strong></p>
                 {% endif %}
 
-                {# PHẦN HIỂN THỊ THỜI GIAN VÀO/RA ĐÃ ĐƯỢC THÊM TRONG FILE BẠN GỬI #}
-                {# Đảm bảo sử dụng đúng biến context 'entry_time_display' và 'exit_time_display' #}
                 {% if entry_time_display and exit_time_display %}
-                <div class="detail-times"> {# Thêm class để style nếu muốn #}
+                <div class="detail-times">
                     <p style="font-weight: bold;">Chi tiết lượt gửi:</p>
                     <p>Thời gian vào: {{ entry_time_display|localtime|date:"H:i" }} Ngày {{ entry_time_display|localtime|date:"d" }} tháng {{ entry_time_display|localtime|date:"n" }} năm {{ entry_time_display|localtime|date:"Y" }}</p>
                     <p>Thời gian ra: {{ exit_time_display|localtime|date:"H:i" }} Ngày {{ exit_time_display|localtime|date:"d" }} tháng {{ exit_time_display|localtime|date:"n" }} năm {{ exit_time_display|localtime|date:"Y" }}</p>
@@ -131,4 +155,41 @@
 </section>
 {% endblock %}
 
-{% block extra_js %}{% endblock %}
+{% block extra_js %}
+<script>
+const exitFileInput = document.getElementById('exit_image_upload');
+if (exitFileInput) {
+    exitFileInput.onchange = (event) => {
+        // Kiểm tra xem người dùng có chọn file nào không
+        if (exitFileInput.files.length > 0) {
+            const file = exitFileInput.files[0];
+
+            // --- Logic 1: Cập nhật tên file của Bulma ---
+            const fileNameDisplay = document.getElementById('exit-file-name-display');
+            if (fileNameDisplay) {
+                fileNameDisplay.textContent = file.name;
+            }
+
+            // --- Logic 2: Hiển thị ảnh xem trước ---
+            const previewContainer = document.getElementById('exit_image_preview_container');
+            const previewImage = document.getElementById('exit_image_preview');
+            if (previewContainer && previewImage) {
+                previewContainer.style.display = 'block';
+                previewImage.src = URL.createObjectURL(file);
+            }
+
+        } else {
+            // Xử lý trường hợp người dùng bấm "Cancel" khi đang chọn file
+            const fileNameDisplay = document.getElementById('exit-file-name-display');
+            if (fileNameDisplay) {
+                fileNameDisplay.textContent = 'Chưa có file nào được chọn';
+            }
+            const previewContainer = document.getElementById('exit_image_preview_container');
+            if (previewContainer) {
+                previewContainer.style.display = 'none';
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

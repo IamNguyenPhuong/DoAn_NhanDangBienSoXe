@@ -103,6 +103,8 @@ class PerTurnTicketRules(models.Model):
 class ParkingHistory(models.Model):
     RecordID = models.AutoField(primary_key=True)
     VehicleID = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True)
+    VehicleTypeID = models.ForeignKey(VehicleTypes, on_delete=models.SET_NULL, null=True, blank=True,
+                                      verbose_name="Loại xe lúc vào")
     EntryTime = models.DateTimeField(auto_now_add=True)
     ExitTime = models.DateTimeField(null=True, blank=True)
     ProcessedLicensePlateEntry = models.CharField(max_length=50, null=True, blank=True)

@@ -6,7 +6,6 @@ from django.utils import timezone
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q  # Import Q để dùng cho tìm kiếm phức tạp
-
 from decimal import Decimal
 from datetime import datetime, time, timedelta
 import pytz  # Nếu bạn còn dùng trong calculate_parking_fee_detailed
@@ -26,7 +25,9 @@ from datetime import datetime, time, timedelta
 import pytz # Cần cho .astimezone(pytz.utc)
 from .forms import DateSelectionForm, MonthYearSelectionForm # Thêm MonthYearSelectionForm
 from calendar import monthrange # Thêm để lấy số ngày trong tháng
-
+from django.core.files.storage import FileSystemStorage
+import uuid
+import os
 # Import models một lần ở đây
 from .models import (
     KhachThue,
@@ -45,7 +46,7 @@ from .forms import (
     PerTurnTicketRuleForm
 )
 # Import hàm xử lý ảnh
-from .image_processing import save_uploaded_image_and_recognize_plate
+from .image_processing import save_entry_image_and_recognize_plate, save_exit_image_and_recognize_plate
 
 
 # View cho Trang chủ người dùng cuối
@@ -91,6 +92,10 @@ def logout_view(request):
 # View cho Kiểm tra biển số / Ghi nhận xe vào
 @login_required
 def kiem_tra_bien_so_view(request):
+    # 1. Lấy danh sách các loại xe để hiển thị ra form
+    vehicle_types = VehicleTypes.objects.all()
+
+    # 2. Truyền danh sách loại xe vào context
     context = {
         'thong_bao_loi': None,
         'thong_bao_thanh_cong_text': None,
@@ -98,20 +103,24 @@ def kiem_tra_bien_so_view(request):
         'thoi_gian_su_kien': None,
         'xe': None,
         'khach_thue': None,
-        'bien_so_da_nhap': ''
+        'bien_so_da_nhap': '',
+        'vehicle_types': vehicle_types,
     }
     entry_vehicle_image_path_to_save = None
-    entry_ocr_ready_image_path_to_save = None  # Nếu bạn định lưu ảnh này
+    entry_ocr_ready_image_path_to_save = None
 
     if request.method == 'POST':
         bien_so_nhap_tay = request.POST.get('bien_so', '').strip().upper()
         uploaded_image = request.FILES.get('image_upload')
+
+        # 3. Lấy loại xe từ form, giá trị là ID của VehicleType
+        vehicle_type_id = request.POST.get('vehicle_type')
+
         bien_so_final = ""
         recognized_plate_status = ""
 
         if uploaded_image:
-            plate_text_from_ocr, saved_original_path, saved_ocr_input_path = save_uploaded_image_and_recognize_plate(
-                uploaded_image)
+            plate_text_from_ocr, saved_original_path, saved_ocr_input_path = save_entry_image_and_recognize_plate(uploaded_image)
             if saved_original_path:
                 entry_vehicle_image_path_to_save = saved_original_path
             if saved_ocr_input_path:
@@ -119,10 +128,7 @@ def kiem_tra_bien_so_view(request):
 
             recognized_plate_status = plate_text_from_ocr
 
-            if recognized_plate_status and recognized_plate_status not in [
-                "LOI_DOC_ANH", "LOI_XU_LY_ANH", "LOI_TESSERACT_NOT_FOUND", "LOI_OCR",
-                "KHONG_TIM_THAY_VUNG_4_CANH", "OCR_KHONG_RA_KY_TU", "LOI_KICH_THUOC_CAT"
-            ]:
+            if recognized_plate_status and "LOI" not in recognized_plate_status.upper() and "KHONG" not in recognized_plate_status.upper():
                 bien_so_final = recognized_plate_status.upper()
                 context['thong_bao_text'] = f"Ảnh đã được upload. Biển số nhận dạng: {bien_so_final}."
             else:
@@ -130,7 +136,6 @@ def kiem_tra_bien_so_view(request):
                 if bien_so_nhap_tay:
                     bien_so_final = bien_so_nhap_tay
                     context['thong_bao_loi'] += "Sử dụng biển số nhập tay."
-                # Bỏ return ở đây để form có thể hiển thị lại với lỗi
         elif bien_so_nhap_tay:
             bien_so_final = bien_so_nhap_tay
         else:
@@ -139,12 +144,10 @@ def kiem_tra_bien_so_view(request):
 
         context['bien_so_da_nhap'] = bien_so_final
 
-        if not bien_so_final or "LOI" in bien_so_final.upper() or \
-                bien_so_final in ["KHONG_TIM_THAY_VUNG_4_CANH", "OCR_KHONG_RA_KY_TU"]:
+        if not bien_so_final or "LOI" in bien_so_final.upper() or "KHONG" in bien_so_final.upper():
             if not context['thong_bao_loi']:
                 context['thong_bao_loi'] = "Không xác định được biển số xe hợp lệ."
-            # Không return ở đây, để hiển thị lỗi trên form
-        else:  # Chỉ xử lý ghi nhận nếu có bien_so_final hợp lệ
+        else:
             try:
                 xe_khach_thue_tim_thay = Vehicle.objects.filter(BienSoXe__iexact=bien_so_final).first()
                 if xe_khach_thue_tim_thay:
@@ -153,6 +156,7 @@ def kiem_tra_bien_so_view(request):
                     context['khach_thue'] = khach_thue
                     lich_su_dang_gui = ParkingHistory.objects.filter(VehicleID=xe_khach_thue_tim_thay,
                                                                      ExitTime__isnull=True, Status='IN_YARD').first()
+
                     if lich_su_dang_gui:
                         context['thong_bao_text'] = (
                             f"Xe {xe_khach_thue_tim_thay.BienSoXe} của khách thuê {khach_thue.HoVaTen} "
@@ -161,10 +165,10 @@ def kiem_tra_bien_so_view(request):
                     else:
                         lich_su_moi = ParkingHistory.objects.create(
                             VehicleID=xe_khach_thue_tim_thay,
+                            VehicleTypeID=xe_khach_thue_tim_thay.VehicleTypeID,
                             ProcessedLicensePlateEntry=bien_so_final,
                             EntryTime=timezone.now(), Status='IN_YARD',
                             EntryVehicleImagePath=entry_vehicle_image_path_to_save
-                            # , EntryOcrReadyImagePath=entry_ocr_ready_image_path_to_save # Nếu bạn có trường này
                         )
                         context['thong_bao_thanh_cong_text'] = (
                             f"Đã ghi nhận xe {xe_khach_thue_tim_thay.BienSoXe} (BS nhận dạng: {bien_so_final}) của khách thuê "
@@ -179,19 +183,31 @@ def kiem_tra_bien_so_view(request):
                         context['thong_bao_text'] = f"Xe khách vãng lai {bien_so_final} đang ở trong bãi. Vào lúc:"
                         context['thoi_gian_su_kien'] = lich_su_vang_lai_dang_gui.EntryTime
                     else:
-                        lich_su_moi_vang_lai = ParkingHistory.objects.create(
-                            VehicleID=None, ProcessedLicensePlateEntry=bien_so_final,
-                            EntryTime=timezone.now(), Status='IN_YARD',
-                            EntryVehicleImagePath=entry_vehicle_image_path_to_save
-                            # , EntryOcrReadyImagePath=entry_ocr_ready_image_path_to_save # Nếu có
-                        )
-                        context[
-                            'thong_bao_thanh_cong_text'] = f"Đã ghi nhận xe khách vãng lai (BS nhận dạng: {bien_so_final}) vào bãi lúc:"
-                        context['thoi_gian_su_kien'] = lich_su_moi_vang_lai.EntryTime
+                        selected_vehicle_type = None
+                        if vehicle_type_id:
+                            try:
+                                selected_vehicle_type = VehicleTypes.objects.get(pk=vehicle_type_id)
+                            except VehicleTypes.DoesNotExist:
+                                context['thong_bao_loi'] = "Loại xe đã chọn không hợp lệ."
+
+                        if not context['thong_bao_loi']:
+                            lich_su_moi_vang_lai = ParkingHistory.objects.create(
+                                VehicleID=None,
+                                ProcessedLicensePlateEntry=bien_so_final,
+                                EntryTime=timezone.now(),
+                                Status='IN_YARD',
+                                EntryVehicleImagePath=entry_vehicle_image_path_to_save,
+                                VehicleTypeID=selected_vehicle_type
+                            )
+                            context[
+                                'thong_bao_thanh_cong_text'] = f"Đã ghi nhận xe khách vãng lai (BS nhận dạng: {bien_so_final}) vào bãi lúc:"
+                            context['thoi_gian_su_kien'] = lich_su_moi_vang_lai.EntryTime
+
             except Exception as e_view:
                 print(f"Lỗi trong view kiem_tra_bien_so khi xử lý CSDL: {e_view}")
                 context['thong_bao_loi'] = "Có lỗi xảy ra trong quá trình xử lý dữ liệu."
 
+    # ---- DÒNG BỊ LỖI ĐÃ ĐƯỢC SỬA Ở ĐÂY ----
     return render(request, 'parking_management/kiem_tra_bien_so.html', context)
 
 
@@ -293,53 +309,72 @@ def calculate_parking_fee_detailed(entry_dt_utc, exit_dt_utc, vehicle_type):
 
 # View cho Xử lý xe ra
 @login_required
-@login_required
 def xe_ra_khoi_bai_view(request):
     context = {
         'bien_so_da_nhap': '',
-        'lich_su_gui_xe_hien_tai': None,  # Đổi tên để phân biệt với biến trong logic
+        'lich_su_gui_xe_hien_tai': None,
         'thong_bao_loi': None,
-        'thong_bao_thanh_cong': None,  # Giữ lại để chứa thông báo chính
+        'thong_bao_thanh_cong': None,
         'tien_phai_tra': None,
-        'entry_time_display': None,  # Sẽ dùng để hiển thị thời gian vào
-        'exit_time_display': None,  # Sẽ dùng để hiển thị thời gian ra
+        'entry_time_display': None,
+        'exit_time_display': None,
     }
 
     if request.method == 'POST':
-        bien_so_nhap_ra = request.POST.get('bien_so_ra', '').strip().upper()
-        context['bien_so_da_nhap'] = bien_so_nhap_ra
+        bien_so_nhap_tay = request.POST.get('bien_so_ra', '').strip().upper()
+        exit_image_file = request.FILES.get('exit_image_upload')
 
-        if not bien_so_nhap_ra:
-            context['thong_bao_loi'] = "Vui lòng nhập biển số xe muốn ra."
-        else:
-            # Tìm xe trong bãi (ưu tiên xe khách thuê, sau đó đến xe khách vãng lai)
-            lich_su_dang_xu_ly = ParkingHistory.objects.filter(
-                (Q(VehicleID__BienSoXe__iexact=bien_so_nhap_ra) | Q(
-                    ProcessedLicensePlateEntry__iexact=bien_so_nhap_ra)),
-                ExitTime__isnull=True,
-                Status='IN_YARD'
-            ).select_related('VehicleID', 'VehicleID__VehicleTypeID', 'VehicleID__KhachThueID').first()
+        bien_so_final = ""
+        exit_image_path_to_save = None
 
-            context['lich_su_gui_xe_hien_tai'] = lich_su_dang_xu_ly
+        if exit_image_file:
+            plate_text_from_ocr, saved_original_path, _ = save_exit_image_and_recognize_plate(exit_image_file)
 
-            if lich_su_dang_xu_ly:
-                # Biến này sẽ lưu lại EntryTime gốc để hiển thị, vì lich_su_dang_xu_ly có thể được clear
-                entry_time_cho_hien_thi = lich_su_dang_xu_ly.EntryTime
+            if saved_original_path:
+                exit_image_path_to_save = saved_original_path
 
-                if 'action_tinh_tien_va_cho_ra' in request.POST:
-                    lich_su_dang_xu_ly.ExitTime = timezone.now()
+            if plate_text_from_ocr and "LOI" not in plate_text_from_ocr.upper() and "KHONG" not in plate_text_from_ocr.upper():
+                bien_so_final = plate_text_from_ocr.upper()
+            else:
+                if bien_so_nhap_tay:
+                    bien_so_final = bien_so_nhap_tay
+        elif bien_so_nhap_tay:
+            bien_so_final = bien_so_nhap_tay
 
-                    phi_gui_xe = Decimal('0.00')
-                    rules_applied_info = []
+        if not bien_so_final and 'action_tim_xe' in request.POST:
+            context['thong_bao_loi'] = "Vui lòng nhập biển số hoặc upload ảnh hợp lệ."
+            return render(request, 'parking_management/xe_ra_khoi_bai.html', context)
 
-                    if lich_su_dang_xu_ly.VehicleID and lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket:
-                        lich_su_dang_xu_ly.WasMonthlyTicketUsed = True
-                        # Thông báo chính
-                        context[
-                            'thong_bao_thanh_cong'] = f"Xe {bien_so_nhap_ra} của khách thuê sử dụng vé tháng. Cho xe ra."
-                        # Không cần thông tin "Các ca áp dụng" và "Tổng số tiền" nếu dùng vé tháng
-                    else:
-                        current_vehicle_type = None
+        context['bien_so_da_nhap'] = bien_so_final
+
+        lich_su_dang_xu_ly = ParkingHistory.objects.filter(
+            (Q(VehicleID__BienSoXe__iexact=bien_so_final) | Q(
+                ProcessedLicensePlateEntry__iexact=bien_so_final)),
+            ExitTime__isnull=True,
+            Status='IN_YARD'
+        ).select_related('VehicleID', 'VehicleID__VehicleTypeID', 'VehicleID__KhachThueID', 'VehicleTypeID').first()
+
+        context['lich_su_gui_xe_hien_tai'] = lich_su_dang_xu_ly
+
+        if lich_su_dang_xu_ly:
+            entry_time_cho_hien_thi = lich_su_dang_xu_ly.EntryTime
+
+            if 'action_tinh_tien_va_cho_ra' in request.POST:
+                lich_su_dang_xu_ly.ExitTime = timezone.now()
+
+                # CẬP NHẬT ĐƯỜNG DẪN ẢNH VÀ BIỂN SỐ LÚC RA VÀO CSDL
+                lich_su_dang_xu_ly.ExitVehicleImagePath = exit_image_path_to_save
+                lich_su_dang_xu_ly.ProcessedLicensePlateExit = bien_so_final
+
+                phi_gui_xe = Decimal('0.00')
+                rules_applied_info = []
+
+                if lich_su_dang_xu_ly.VehicleID and lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket:
+                    lich_su_dang_xu_ly.WasMonthlyTicketUsed = True
+                    context['thong_bao_thanh_cong'] = f"Xe {bien_so_final} của khách thuê sử dụng vé tháng. Cho xe ra."
+                else:
+                    current_vehicle_type = lich_su_dang_xu_ly.VehicleTypeID
+                    if not current_vehicle_type:
                         if lich_su_dang_xu_ly.VehicleID:
                             current_vehicle_type = lich_su_dang_xu_ly.VehicleID.VehicleTypeID
                         else:
@@ -347,62 +382,48 @@ def xe_ra_khoi_bai_view(request):
                                 current_vehicle_type = VehicleTypes.objects.get(TypeName='Xe máy')
                             except VehicleTypes.DoesNotExist:
                                 context['thong_bao_loi'] = "Lỗi: Không tìm thấy loại xe 'Xe máy' mặc định."
-                                # Không nên save ở đây nếu có lỗi, để người dùng thử lại
-                                # lich_su_dang_xu_ly.Status = 'EXITED_WITH_ERROR_NO_TYPE'
-                                # lich_su_dang_xu_ly.save()
                                 return render(request, 'parking_management/xe_ra_khoi_bai.html', context)
 
-                        if current_vehicle_type:
-                            phi_gui_xe, rules_applied_info = calculate_parking_fee_detailed(
-                                entry_time_cho_hien_thi,  # Sử dụng EntryTime gốc
-                                lich_su_dang_xu_ly.ExitTime,
-                                current_vehicle_type
-                            )
-
-                            if rules_applied_info and not any("Không có quy tắc" in s for s in rules_applied_info):
-                                context['thong_bao_thanh_cong'] = (f"Đã tính tiền cho xe {bien_so_nhap_ra}. "
-                                                                   f"Các ca áp dụng: {'; '.join(rules_applied_info)}. "
-                                                                   f"Tổng số tiền: {phi_gui_xe} VND. Cho xe ra.")
-                            elif rules_applied_info and "Không có quy tắc" in rules_applied_info[0]:
-                                context['thong_bao_thanh_cong'] = rules_applied_info[
-                                                                      0] + f" Xe {bien_so_nhap_ra} ra không tính phí."
-                                phi_gui_xe = Decimal('0.00')
-                            else:
-                                context['thong_bao_thanh_cong'] = (
-                                    f"Không xác định được quy tắc tính phí cho xe {bien_so_nhap_ra}. "
-                                    f"Cho xe ra không tính phí.")
-                                phi_gui_xe = Decimal('0.00')
+                    if current_vehicle_type:
+                        phi_gui_xe, rules_applied_info = calculate_parking_fee_detailed(
+                            entry_time_cho_hien_thi, lich_su_dang_xu_ly.ExitTime, current_vehicle_type
+                        )
+                        if rules_applied_info and not any("Không có quy tắc" in s for s in rules_applied_info):
+                            context['thong_bao_thanh_cong'] = (f"Đã tính tiền cho xe {bien_so_final}. "
+                                                               f"Tổng số tiền: {phi_gui_xe} VND. Cho xe ra.")
+                        elif rules_applied_info and "Không có quy tắc" in rules_applied_info[0]:
+                            context['thong_bao_thanh_cong'] = rules_applied_info[
+                                                                  0] + f" Xe {bien_so_final} ra không tính phí."
+                            phi_gui_xe = Decimal('0.00')
                         else:
-                            context['thong_bao_loi'] = "Không thể xác định loại xe để tính phí."
-                            phi_gui_xe = Decimal('0.00')  # Gán phí là 0 nếu không xác định được
-
-                    lich_su_dang_xu_ly.CalculatedFee = phi_gui_xe
-                    lich_su_dang_xu_ly.Status = 'EXITED'
-                    lich_su_dang_xu_ly.save()
-
-                    context['tien_phai_tra'] = lich_su_dang_xu_ly.CalculatedFee
-                    # Lưu thời gian vào và ra vào context để hiển thị
-                    context['entry_time_display'] = entry_time_cho_hien_thi
-                    context['exit_time_display'] = lich_su_dang_xu_ly.ExitTime
-                    context['lich_su_gui_xe_hien_tai'] = None  # Reset để ẩn phần xác nhận
-                else:
-                    # Logic hiển thị thông tin xe để xác nhận (giữ nguyên như file views.py của bạn)
-                    if lich_su_dang_xu_ly.VehicleID:
-                        # ...
-                        context['thong_bao_text'] = (
-                            f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê "
-                            f"{lich_su_dang_xu_ly.VehicleID.KhachThueID.HoVaTen} đang trong bãi.")
-                        context['thoi_gian_vao'] = lich_su_dang_xu_ly.EntryTime
-                        context['co_ve_thang'] = lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket
+                            context['thong_bao_thanh_cong'] = (
+                                f"Không xác định được quy tắc tính phí cho xe {bien_so_final}. "
+                                f"Cho xe ra không tính phí.")
+                            phi_gui_xe = Decimal('0.00')
                     else:
-                        # ...
-                        context['thong_bao_text'] = (
-                            f"Tìm thấy xe khách vãng lai {lich_su_dang_xu_ly.ProcessedLicensePlateEntry} "
-                            f"đang trong bãi.")
-                        context['thoi_gian_vao'] = lich_su_dang_xu_ly.EntryTime
-                        context['co_ve_thang'] = False
-            else:
-                context['thong_bao_loi'] = f"Không tìm thấy xe có biển số {bien_so_nhap_ra} đang trong bãi."
+                        context['thong_bao_loi'] = "Không thể xác định loại xe để tính phí."
+                        phi_gui_xe = Decimal('0.00')
+
+                lich_su_dang_xu_ly.CalculatedFee = phi_gui_xe
+                lich_su_dang_xu_ly.Status = 'EXITED'
+                lich_su_dang_xu_ly.save()
+
+                context['tien_phai_tra'] = lich_su_dang_xu_ly.CalculatedFee
+                context['entry_time_display'] = entry_time_cho_hien_thi
+                context['exit_time_display'] = lich_su_dang_xu_ly.ExitTime
+                context['lich_su_gui_xe_hien_tai'] = None
+            else:  # Logic khi bấm nút "Tìm xe trong bãi"
+                if lich_su_dang_xu_ly.VehicleID:
+                    context['thong_bao_text'] = (
+                        f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê "
+                        f"{lich_su_dang_xu_ly.VehicleID.KhachThueID.HoVaTen} đang trong bãi.")
+                else:
+                    context['thong_bao_text'] = (f"Tìm thấy xe khách vãng lai {bien_so_final} đang trong bãi.")
+                context[
+                    'co_ve_thang'] = lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket if lich_su_dang_xu_ly.VehicleID else False
+                context['thoi_gian_vao'] = lich_su_dang_xu_ly.EntryTime
+        else:
+            context['thong_bao_loi'] = f"Không tìm thấy xe có biển số '{bien_so_final}' đang trong bãi."
 
     return render(request, 'parking_management/xe_ra_khoi_bai.html', context)
 
@@ -681,7 +702,7 @@ def parkinghistory_list_view(request):
         'VehicleID__VehicleTypeID',
         'PerTurnRuleAppliedID',
         'PerTurnRuleAppliedID__VehicleTypeID'
-    ).order_by('-ExitTime', '-EntryTime')
+    ).order_by('-RecordID')
 
     query = request.GET.get('q', '')
     if query:
