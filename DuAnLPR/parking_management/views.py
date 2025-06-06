@@ -1,53 +1,30 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from django.contrib import messages
-from django.core.paginator import Paginator
-from django.db.models import Q  # Import Q để dùng cho tìm kiếm phức tạp
-from decimal import Decimal
-from datetime import datetime, time, timedelta
-import pytz  # Nếu bạn còn dùng trong calculate_parking_fee_detailed
-from django.db.models import Sum # Thêm Sum để tính tổng
-from .forms import DateSelectionForm # Import form vừa tạo
-from django.utils import timezone
-from datetime import datetime, time # Đảm bảo datetime và time được import
-import pytz # Vẫn cần pytz để chuyển đổi sang UTC một cách an toàn nếu USE_TZ=True
-from django.utils import timezone
-from datetime import datetime, time, timedelta # Đảm bảo datetime và time được import
-import pytz # Vẫn cần pytz để chuyển đổi sang UTC một cách an toàn nếu USE_TZ=True
-from django.db.models import Sum, Q # Đảm bảo Q và Sum đã import
-from .models import ParkingHistory, VehicleTypes # Và các model khác nếu cần
-from .forms import DateSelectionForm # Import form
-from django.utils import timezone
-from datetime import datetime, time, timedelta
-import pytz # Cần cho .astimezone(pytz.utc)
-from .forms import DateSelectionForm, MonthYearSelectionForm # Thêm MonthYearSelectionForm
-from calendar import monthrange # Thêm để lấy số ngày trong tháng
-from django.core.files.storage import FileSystemStorage
-import uuid
+# Standard Library Imports
 import os
-# Import models một lần ở đây
-from .models import (
-    KhachThue,
-    VehicleTypes,
-    Vehicle,
-    MonthlyTicketRules,
-    PerTurnTicketRules,
-    ParkingHistory
-)
-# Import forms một lần ở đây
-from .forms import (
-    KhachThueForm,
-    VehicleForm,
-    VehicleTypeForm,
-    MonthlyTicketRuleForm,
-    PerTurnTicketRuleForm
-)
-# Import hàm xử lý ảnh
-from .image_processing import save_entry_image_and_recognize_plate, save_exit_image_and_recognize_plate
+import uuid
+from calendar import monthrange
+from datetime import datetime, time, timedelta
+from decimal import Decimal
 
+# Third-party Imports
+from django.contrib import messages
+from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.core.files.storage import FileSystemStorage
+from django.core.paginator import Paginator
+from django.db.models import Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+import pytz
+
+# Local Application Imports
+from .forms import (DateSelectionForm, KhachThueForm, MonthYearSelectionForm,
+                    MonthlyTicketRuleForm, PerTurnTicketRuleForm, VehicleForm,
+                    VehicleTypeForm)
+from .image_processing import (save_entry_image_and_recognize_plate,
+                               save_exit_image_and_recognize_plate)
+from .models import (KhachThue, MonthlyTicketRules, ParkingHistory,
+                     PerTurnTicketRules, Vehicle, VehicleTypes)
 
 # View cho Trang chủ người dùng cuối
 @login_required
@@ -335,13 +312,14 @@ def xe_ra_khoi_bai_view(request):
 
             if plate_text_from_ocr and "LOI" not in plate_text_from_ocr.upper() and "KHONG" not in plate_text_from_ocr.upper():
                 bien_so_final = plate_text_from_ocr.upper()
-            else:
+            else:  # Nếu nhận dạng ảnh lỗi, thử dùng biển số nhập tay
                 if bien_so_nhap_tay:
                     bien_so_final = bien_so_nhap_tay
-        elif bien_so_nhap_tay:
+        elif bien_so_nhap_tay:  # Nếu không có ảnh, dùng biển số nhập tay
             bien_so_final = bien_so_nhap_tay
 
-        if not bien_so_final and 'action_tim_xe' in request.POST:
+        # Nếu không có biển số cuối cùng (do cả ảnh và nhập tay đều không có/lỗi)
+        if not bien_so_final:
             context['thong_bao_loi'] = "Vui lòng nhập biển số hoặc upload ảnh hợp lệ."
             return render(request, 'parking_management/xe_ra_khoi_bai.html', context)
 
@@ -412,11 +390,10 @@ def xe_ra_khoi_bai_view(request):
                 context['entry_time_display'] = entry_time_cho_hien_thi
                 context['exit_time_display'] = lich_su_dang_xu_ly.ExitTime
                 context['lich_su_gui_xe_hien_tai'] = None
-            else:  # Logic khi bấm nút "Tìm xe trong bãi"
+            else:
                 if lich_su_dang_xu_ly.VehicleID:
                     context['thong_bao_text'] = (
-                        f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê "
-                        f"{lich_su_dang_xu_ly.VehicleID.KhachThueID.HoVaTen} đang trong bãi.")
+                        f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê...")
                 else:
                     context['thong_bao_text'] = (f"Tìm thấy xe khách vãng lai {bien_so_final} đang trong bãi.")
                 context[
