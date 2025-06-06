@@ -4,7 +4,7 @@
 
 {% block content %}
 <section class="section">
-    <div class="container">
+    <div class="container" style="max-width: 600px;">
         <h2 class="title is-3">{{ page_title }}</h2>
         <form method="post" novalidate>
             {% csrf_token %}
@@ -16,41 +16,31 @@
             {% endif %}
 
             {% for field in form %}
-                <div class="field is-horizontal">
-                    <div class="field-label is-normal">
-                        <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <div class="control {% if field.field.widget.input_type == 'select' %}is-expanded{% else %}is-expanded{% endif %}">
-                                {% if field.field.widget.input_type == 'select' %}
-                                    <div class="select is-fullwidth">
-                                        {{ field }}
-                                    </div>
-                                {% else %}
-                                    {{ field }} 
-                                {% endif %}
+                <div class="field">
+                    <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    <div class="control">
+                        {% if field.field.widget.input_type == 'select' %}
+                            <div class="select is-fullwidth">
+                                {{ field }}
                             </div>
-                            {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
-                            {% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
-                        </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
                     </div>
+                    {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                    {% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                 </div>
             {% endfor %}
 
-            <div class="field is-horizontal mt-5">
-                <div class="field-label"></div>
-                <div class="field-body">
-                    <div class="field">
-                        <div class="control">
-                            <button type="submit" class="button is-success">Lưu</button>
-                            <a href="{% url 'parking_management:monthlyticketrule_list' %}" class="button is-light ml-2">Hủy</a>
-                        </div>
-                    </div>
+            <div class="field is-grouped mt-5">
+                <div class="control">
+                    <button type="submit" class="button is-success">Lưu</button>
+                </div>
+                <div class="control">
+                    <a href="{% url 'parking_management:monthlyticketrule_list' %}" class="button is-light">Hủy</a>
                 </div>
             </div>
         </form>
-        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button is-link is-light mt-5">Quay lại Trang chủ</a></p>
     </div>
 </section>
 {% endblock %}

@@ -39,7 +39,7 @@
                         <td>{{ rule.ShiftName|default_if_none:"N/A" }}</td>
                         <td>{{ rule.TimeFrom|time:"H:i"|default_if_none:"N/A" }}</td>
                         <td>{{ rule.TimeTo|time:"H:i"|default_if_none:"N/A" }}</td>
-                        <td>{{ rule.Price|floatformat:0|intcomma }}</td> {# Dòng này cần {% load humanize %} #}
+                        <td>{{ rule.Price|intcomma }}</td>
                         <td>
                             <a href="{% url 'parking_management:perturnticketrule_update' rule.PerTurnRuleID %}" class="button is-small is-info">Sửa</a>
                             <a href="{% url 'parking_management:perturnticketrule_delete' rule.PerTurnRuleID %}" class="button is-small is-danger">Xóa</a>

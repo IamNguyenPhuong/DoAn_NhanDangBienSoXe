@@ -21,7 +21,6 @@ class KhachThue(models.Model):
     GIOI_TINH_CHOICES = [
         ('Nam', 'Nam'),
         ('Nữ', 'Nữ'),
-        ('Khác', 'Khác'),
     ]
     GioiTinh = models.CharField(max_length=10, choices=GIOI_TINH_CHOICES)
 
@@ -68,11 +67,13 @@ class Vehicle(models.Model):
 # 5. Bảng MonthlyTicketRules (Quy Tắc Giá Vé Tháng)
 class MonthlyTicketRules(models.Model):
     MonthlyRuleID = models.AutoField(primary_key=True)
-    VehicleTypeID = models.ForeignKey(VehicleTypes, on_delete=models.RESTRICT)
-    PricePerMonth = models.DecimalField(max_digits=10, decimal_places=2)
+    # 1. Đảm bảo mỗi loại xe chỉ có 1 quy tắc giá
+    VehicleTypeID = models.OneToOneField(VehicleTypes, on_delete=models.CASCADE)
+    # 2. Đổi giá vé về kiểu số nguyên
+    PricePerMonth = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        # Kiểm tra self.VehicleTypeID có tồn tại không trước khi truy cập TypeName
+        # ... (phần này có thể giữ nguyên hoặc chỉnh sửa nếu muốn)
         vehicle_type_name = self.VehicleTypeID.TypeName if self.VehicleTypeID else "Unknown Type"
         return f"Vé tháng cho {vehicle_type_name} - {self.PricePerMonth} VND"
 
@@ -84,7 +85,7 @@ class MonthlyTicketRules(models.Model):
 class PerTurnTicketRules(models.Model):
     PerTurnRuleID = models.AutoField(primary_key=True)
     VehicleTypeID = models.ForeignKey(VehicleTypes, on_delete=models.RESTRICT)
-    Price = models.DecimalField(max_digits=10, decimal_places=2)
+    Price = models.PositiveIntegerField(default=0)
     ShiftName = models.CharField(max_length=100, null=True, blank=True)  # VD: 'Sáng', 'Chiều'
     TimeFrom = models.TimeField(null=True, blank=True)
     TimeTo = models.TimeField(null=True, blank=True)

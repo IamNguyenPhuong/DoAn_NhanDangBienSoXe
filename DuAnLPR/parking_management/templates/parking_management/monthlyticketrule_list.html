@@ -1,5 +1,5 @@
 {% extends "parking_management/base_user.html" %}
-
+{% load humanize %}
 {% block title %}Danh Sách Quy Tắc Giá Vé Tháng{% endblock %}
 
 {% block content %}
@@ -31,7 +31,7 @@
                     <tr>
                         <td>{{ rule.MonthlyRuleID }}</td>
                         <td>{{ rule.VehicleTypeID.TypeName }}</td>
-                        <td>{{ rule.PricePerMonth|floatformat:0 }}</td>
+                        <td>{{ rule.PricePerMonth|intcomma }}</td>
                         <td>
                             <a href="{% url 'parking_management:monthlyticketrule_update' rule.MonthlyRuleID %}" class="button is-small is-info">Sửa</a>
                             <a href="{% url 'parking_management:monthlyticketrule_delete' rule.MonthlyRuleID %}" class="button is-small is-danger">Xóa</a>

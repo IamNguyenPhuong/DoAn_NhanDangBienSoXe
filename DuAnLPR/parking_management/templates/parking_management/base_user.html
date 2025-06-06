@@ -1,10 +1,10 @@
 
 <!DOCTYPE html>
+{% load static %}
+{% load humanize %}
+{% load tz %}
 <html lang="vi">
 <head>
-    {% load static %}
-{% load humanize %} {# Nạp humanize để dùng intcomma và các bộ lọc khác #}
-{% load tz %}    {# Nạp tz để dùng localtime, date nếu cần trong base hoặc các template con #}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Quản Lý Bãi Xe An Cư{% endblock %}</title>
@@ -14,55 +14,41 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            background-color: #f7f7f7; /* Một màu nền nhẹ nhàng cho body */
+            background-color: #f7f7f7;
         }
         .site-content {
             flex: 1;
-            padding-top: 2rem; /* Thêm padding cho nội dung chính */
-            padding-bottom: 2rem;
         }
         .navbar {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Thêm bóng đổ cho navbar */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        .navbar-item img.logo {
-            max-height: 3.75rem; /* Kích thước logo, bạn có thể điều chỉnh */
+        /* ---- START: THAY ĐỔI CSS CHO LOGO ---- */
+        .navbar-brand > .navbar-item img {
+            max-height: 2.75rem; /* Tăng chiều cao tối đa của logo */
         }
+        /* ---- END: THAY ĐỔI CSS CHO LOGO ---- */
         .footer {
-            background-color: #363636; /* Màu tối hơn cho footer */
+            background-color: #363636;
             color: #fff;
-            padding: 2rem 1.5rem 2rem; /* Giảm padding một chút */
+            padding: 2rem 1.5rem;
         }
-        .footer a {
-            color: #48c78e; /* Màu link trong footer */
-        }
-        .footer a:hover {
-            color: #fff;
-        }
-        .section {
-            padding-top: 1.5rem; /* Giữ nguyên hoặc điều chỉnh padding cho section */
-            padding-bottom: 1.5rem;
-        }
-        /* Thêm style cho menu active (nếu muốn) */
         .navbar-item.is-active {
-            background-color: #48c78e; /* Màu xanh lá của Bulma */
+            background-color: #48c78e;
             color: white !important;
         }
-        .navbar-dropdown .navbar-item:hover {
-            background-color: #f5f5f5; /* Màu hover cho item trong dropdown */
-        }
         span.navbar-item{
-               margin-bottom: .5rem;
+            margin-bottom: .5rem;
         }
     </style>
-    {% block extra_head %}{% endblock %} {# Khối để thêm CSS hoặc JS riêng cho từng trang con #}
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <header>
         <nav class="navbar is-light" role="navigation" aria-label="main navigation">
             <div class="navbar-brand">
                 <a class="navbar-item" href="{% url 'parking_management:user_dashboard' %}">
-                    {# <img src="{% static 'path/to/your/logo.png' %}" class="logo" alt="Logo An Cư"> #}
-                    <strong style="font-size: 1.2em;">QL Bãi Xe An Cư</strong>
+                    {# Bỏ width và height để CSS kiểm soát kích thước #}
+                    <img src="{% static 'parking_management/images/logo_ancu.png' %}" alt="Logo QL Bãi Xe An Cư" style="padding: 0 5px">
                 </a>
 
                 <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarMainParking">
@@ -73,10 +59,8 @@
             </div>
 
             <div id="navbarMainParking" class="navbar-menu">
+                {# ... Toàn bộ phần còn lại của navbar giữ nguyên ... #}
                 <div class="navbar-start">
-                    <a class="navbar-item {% if request.resolver_match.url_name == 'user_dashboard' %}is-active{% endif %}" href="{% url 'parking_management:user_dashboard' %}">
-                        Trang Chủ
-                    </a>
                     {% if user.is_authenticated %}
                         <a class="navbar-item {% if request.resolver_match.url_name == 'kiem_tra_bien_so' %}is-active{% endif %}" href="{% url 'parking_management:kiem_tra_bien_so' %}">
                             Ghi Nhận Xe Vào
@@ -89,8 +73,8 @@
                         </a>
 
                         <div class="navbar-item has-dropdown is-hoverable">
-                            <a class="navbar-link {% if request.resolver_match.app_name == 'parking_management' and request.resolver_match.url_name in 'khachthue_list,vehicle_list,monthlyticketrule_list' %}is-active{% endif %}">
-                                Quản Lý Dữ Liệu Khách
+                            <a class="navbar-link {% if request.resolver_match.url_name in 'khachthue_list,vehicle_list,vehicletype_list' %}is-active{% endif %}">
+                                Quản Lý Dữ Liệu
                             </a>
                             <div class="navbar-dropdown">
                                 <a class="navbar-item" href="{% url 'parking_management:khachthue_list' %}">
@@ -99,45 +83,40 @@
                                 <a class="navbar-item" href="{% url 'parking_management:vehicle_list' %}">
                                     Xe Đăng Ký
                                 </a>
-                                <a class="navbar-item" href="{% url 'parking_management:monthlyticketrule_list' %}">
-                                    Giá Vé Tháng
+                                <a class="navbar-item" href="{% url 'parking_management:vehicletype_list' %}">
+                                    Loại Xe
                                 </a>
                             </div>
                         </div>
 
                         <div class="navbar-item has-dropdown is-hoverable">
-                            <a class="navbar-link {% if request.resolver_match.app_name == 'parking_management' and request.resolver_match.url_name in 'vehicletype_list,perturnticketrule_list' %}is-active{% endif %}">
-                                Quản Lý Khác
+                            <a class="navbar-link {% if request.resolver_match.url_name in 'monthlyticketrule_list,perturnticketrule_list' %}is-active{% endif %}">
+                                Quản Lý Giá Vé
                             </a>
                             <div class="navbar-dropdown">
-                                <a class="navbar-item" href="{% url 'parking_management:vehicletype_list' %}">
-                                    Loại Xe
+                                <a class="navbar-item" href="{% url 'parking_management:monthlyticketrule_list' %}">
+                                    Giá Vé Tháng
                                 </a>
                                 <a class="navbar-item" href="{% url 'parking_management:perturnticketrule_list' %}">
                                     Giá Vé Lượt
                                 </a>
                             </div>
                         </div>
-                        <div class="navbar-item has-dropdown is-hoverable">
-    <a class="navbar-link {% if request.resolver_match.url_name in 'thong_ke_doanh_thu_ngay,thong_ke_doanh_thu_thang' %}is-active{% endif %}">
-        Thống Kê Doanh Thu
-    </a>
-    <div class="navbar-dropdown">
-        <a class="navbar-item" href="{% url 'parking_management:thong_ke_doanh_thu_ngay' %}"> {# THAY THẾ HREF #}
-            Doanh Thu Theo Ngày
-        </a>
-        <a class="navbar-item" href="{% url 'parking_management:thong_ke_doanh_thu_thang' %}"> {# Sẽ cập nhật URL sau khi tạo view #}
-            Doanh Thu Theo Tháng
-        </a>
-    </div>
-</div>
 
-                        {# Link Admin Django cho mobile, được bao trong if user.is_authenticated chung #}
-                        <hr class="navbar-divider is-hidden-desktop">
-                        <a class="navbar-item is-hidden-desktop" href="{% url 'admin:index' %}" target="_blank">
-                            Trang Admin Django
-                        </a>
-                    {% endif %} {# Đóng thẻ if user.is_authenticated cho toàn bộ các mục menu cần đăng nhập #}
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link {% if request.resolver_match.url_name in 'thong_ke_doanh_thu_ngay,thong_ke_doanh_thu_thang' %}is-active{% endif %}">
+                                Thống Kê Doanh Thu
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item" href="{% url 'parking_management:thong_ke_doanh_thu_ngay' %}">
+                                    Doanh Thu Theo Ngày
+                                </a>
+                                <a class="navbar-item" href="{% url 'parking_management:thong_ke_doanh_thu_thang' %}">
+                                    Doanh Thu Theo Tháng
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
                 </div>
 
                 <div class="navbar-end">
@@ -155,7 +134,7 @@
                                     Đăng nhập
                                 </a>
                             </div>
-                        {% endif %} {# Đóng thẻ if user.is_authenticated cho phần navbar-item này #}
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -164,7 +143,6 @@
 
     <main class="site-content">
         {% block content %}
-        {# Nội dung của các trang con sẽ được chèn vào đây #}
         {% endblock %}
     </main>
 
@@ -177,14 +155,13 @@
     </footer>
 
     <script>
-    // Script cho mobile navbar burger (cần thiết nếu bạn dùng navbar-burger của Bulma)
     document.addEventListener('DOMContentLoaded', () => {
       const $navbarBurgers = Array.prototype.slice.call(document.querySelectorAll('.navbar-burger'), 0);
       if ($navbarBurgers.length > 0) {
         $navbarBurgers.forEach( el => {
           el.addEventListener('click', () => {
-            const target = el.dataset.target; // Lấy data-target từ nút burger
-            const $target = document.getElementById(target); // Tìm menu tương ứng bằng ID
+            const target = el.dataset.target;
+            const $target = document.getElementById(target);
             el.classList.toggle('is-active');
             $target.classList.toggle('is-active');
           });
@@ -192,6 +169,6 @@
       }
     });
     </script>
-    {% block extra_js %}{% endblock %} {# Khối để thêm JavaScript riêng cho từng trang con #}
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

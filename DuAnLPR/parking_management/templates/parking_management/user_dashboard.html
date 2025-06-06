@@ -1,98 +1,114 @@
+{% extends "parking_management/base_user.html" %}
+{% load static %}
 
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    {% load static %}
-    <meta charset="UTF-8">
-    <title>Trang Chủ - Quản Lý Bãi Xe An Cư</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; }
-        header { background-color: #333; color: white; padding: 1em 0; text-align: center; }
-        .container { width: 80%; margin: 20px auto; background-color: white; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .welcome-message { text-align: right; margin-bottom: 20px; }
+{% block title %}Trang Chủ - Quản Lý Bãi Xe{% endblock %}
 
-        /* CSS cho menu dọc đơn giản */
-        .main-nav ul, .management-nav ul { list-style-type: none; padding: 0; } /* Áp dụng cho cả hai menu */
-        .main-nav ul li, .management-nav ul li { margin-bottom: 10px; }
-        .main-nav ul li a, .management-nav ul li a {
-            display: block;
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-            padding: 12px 18px;
-            background-color: #e9e9e9;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .main-nav ul li a:hover, .management-nav ul li a:hover { background-color: #4CAF50; color: white; }
+{% block extra_head %}
+<style>
+    .dashboard-box {
+        background-color: #fff;
+        border-radius: 6px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(10, 10, 10, 0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .dashboard-box:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 12px rgba(10, 10, 10, 0.15);
+    }
+    .dashboard-box .subtitle {
+        color: #363636;
+    }
+    .dashboard-box p.description {
+        flex-grow: 1;
+        margin-bottom: 1rem;
+    }
+    .main-title {
+        margin-bottom: 2rem;
+        color: #4a4a4a;
+    }
+    .stat-number {
+        font-size: 3rem;
+        font-weight: bold;
+        color: #3273dc; /* Bulma info color */
+        line-height: 1.1;
+    }
+    .site-content{
+    padding:0
+    }
+</style>
+{% endblock %}
 
-        .management-section { margin-top: 30px; padding-top: 20px; border-top: 1px dashed #ccc; }
-        .management-section h3 { margin-bottom: 15px; font-size: 1.3em; color: #555;}
-
-        .stats { margin-top: 30px; font-size: 1.1em; }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>HỆ THỐNG QUẢN LÝ BÃI XE CHUNG CƯ MINI AN CƯ</h1>
-    </header>
+{% block content %}
+<section class="section">
     <div class="container">
-        {% if user.is_authenticated %}
-            <p class="welcome-message">Xin chào, <strong>{{ user.username }}</strong>! | <a href="{% url 'parking_management:logout_user' %}" style="color: #d9534f;">Đăng xuất</a></p>
-        {% else %}
-            <p class="welcome-message"><a href="{% url 'parking_management:login_user' %}">Đăng nhập</a></p>
-        {% endif %}
 
-        <h2>Chức năng chính:</h2>
-        <nav class="main-nav">
-            <ul>
-                {% if user.is_authenticated %}
-                    <li><a href="{% url 'parking_management:kiem_tra_bien_so' %}">Ghi Nhận Xe Vào</a></li>
-                    <li><a href="{% url 'parking_management:xe_ra_khoi_bai' %}">Xử Lý Xe Ra</a></li>
-                    <li><a href="{% url 'parking_management:parkinghistory_list' %}">Xem Lịch Sử Ra Vào</a></li>
-                {% else %}
-                    <li>Vui lòng đăng nhập để sử dụng các chức năng.</li>
-                {% endif %}
-            </ul>
-        </nav>
+        <h1 class="title is-2 has-text-centered main-title">Trang Chủ Quản Lý</h1>
 
-        {% if user.is_authenticated %}
-        <div class="management-section">
-            <h3>Quản lý Dữ liệu Khách:</h3> {# Đổi tên cho rõ ràng #}
-            <nav class="management-nav"> {# Sử dụng class riêng cho menu này nếu muốn style khác #}
-                <ul>
-                    <li><a href="{% url 'parking_management:khachthue_list' %}">Khách Thuê</a></li>
-                    <li><a href="{% url 'parking_management:vehicle_list' %}">Xe Đăng Ký</a></li>
-                    <li><a href="{% url 'parking_management:monthlyticketrule_list' %}">Giá Vé Tháng</a></li>
-                </ul>
-            </nav>
-        </div>
+        <div class="columns is-multiline is-centered">
+            <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                <div class="dashboard-box">
+                    <div>
+                        <h2 class="subtitle is-4">Ghi Nhận Xe Vào</h2>
+                        <p class="description">Check-in xe mới, nhận dạng biển số và lưu trữ hình ảnh.</p>
+                    </div>
+                    <a href="{% url 'parking_management:kiem_tra_bien_so' %}" class="button is-primary is-fullwidth is-medium">Thực hiện</a>
+                </div>
+            </div>
+            <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                <div class="dashboard-box">
+                    <div>
+                        <h2 class="subtitle is-4">Xử Lý Xe Ra</h2>
+                        <p class="description">Check-out, tính phí theo lượt hoặc vé tháng cho xe rời bãi.</p>
+                    </div>
+                    <a href="{% url 'parking_management:xe_ra_khoi_bai' %}" class="button is-success is-fullwidth is-medium">Thực hiện</a>
+                </div>
+            </div>
+            <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                <div class="dashboard-box">
+                    <div>
+                        <h2 class="subtitle is-4">Lịch Sử Ra/Vào</h2>
+                        <p class="description">Xem và tìm kiếm toàn bộ lịch sử các lượt gửi xe trong hệ thống.</p>
+                    </div>
+                    <a href="{% url 'parking_management:parkinghistory_list' %}" class="button is-link is-fullwidth is-medium">Xem chi tiết</a>
+                </div>
+            </div>
 
-        <div class="management-section"> {# THÊM KHỐI MỚI CHO "QUẢN LÝ KHÁC" #}
-            <h3>Quản lý Khác:</h3>
-            <nav class="management-nav">
-                <ul>
-                    <li><a href="{% url 'parking_management:vehicletype_list' %}">Loại Xe</a></li>
-                    <li><a href="{% url 'parking_management:perturnticketrule_list' %}">Giá Vé Lượt</a></li>
-                    {# Các chức năng quản lý khác có thể thêm vào đây #}
-                </ul>
-            </nav>
-        </div>
+            <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                <div class="dashboard-box">
+                    <div>
+                        <h2 class="subtitle is-4">Doanh Thu Theo Ngày</h2>
+                        <p class="description">Thống kê và xem chi tiết doanh thu vé lượt theo ngày cụ thể.</p>
+                    </div>
+                    <a href="{% url 'parking_management:thong_ke_doanh_thu_ngay' %}" class="button is-warning is-light is-fullwidth is-medium">Xem báo cáo</a>
+                </div>
+            </div>
+            <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                <div class="dashboard-box">
+                    <div>
+                        <h2 class="subtitle is-4">Doanh Thu Theo Tháng</h2>
+                        <p class="description">Tổng hợp doanh thu vé lượt theo từng tháng trong năm.</p>
+                    </div>
+                    <a href="{% url 'parking_management:thong_ke_doanh_thu_thang' %}" class="button is-warning is-light is-fullwidth is-medium">Xem báo cáo</a>
+                </div>
+            </div>
 
-        <div class="management-section"> {# Giữ lại phần truy cập Admin Django riêng biệt nếu muốn #}
-             <h3>Truy cập Nâng cao:</h3>
-             <nav class="management-nav">
-                <ul>
-                    <li><a href="{% url 'admin:index' %}" target="_blank" style="background-color: #5bc0de; color:white;">Truy cập Admin Django</a></li>
-                </ul>
-            </nav>
-        </div>
-        {% endif %}
+            <div class="column is-12-tablet is-6-desktop is-4-widescreen">
+                <div class="dashboard-box">
+                    <div>
+                        <h2 class="subtitle is-4">Hiện có trong bãi</h2>
+                        <p class="stat-number">{{ so_xe_trong_bai|default_if_none:"0" }}</p>
+                    </div>
+                    <p class="description">Số lượng xe đang được gửi tại bãi theo thời gian thực.</p>
+                </div>
+            </div>
 
-        <div class="stats">
-            <p>Số xe hiện đang trong bãi: <strong>{{ so_xe_trong_bai|default_if_none:"0" }}</strong></p>
         </div>
     </div>
-</body>
-</html>
+</section>
+{% endblock %}

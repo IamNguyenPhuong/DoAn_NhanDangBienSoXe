@@ -29,7 +29,8 @@ class VehicleForm(forms.ModelForm):
             'HasMonthlyTicket': 'Đăng Ký Vé Tháng',
         }
         widgets = {
-            'BienSoXe': forms.TextInput(attrs={'placeholder': 'Ví dụ: 29A1-12345'}),
+            'BienSoXe': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ví dụ: 29A1-12345'}),
+            # <-- THÊM 'class': 'input' VÀO ĐÂY
             'HasMonthlyTicket': forms.CheckboxInput(),
         }
 
@@ -44,24 +45,26 @@ class VehicleForm(forms.ModelForm):
 class VehicleTypeForm(forms.ModelForm):
     class Meta:
         model = VehicleTypes
-        fields = ['TypeName'] # Trong CSDL v4 (cập nhật NVARCHAR), chúng ta đã bỏ TypeDescription
+        fields = ['TypeName']
         labels = {
             'TypeName': 'Tên Loại Xe',
         }
         widgets = {
-            'TypeName': forms.TextInput(attrs={'placeholder': 'Ví dụ: Xe máy, Ô tô con, Xe đạp điện'}),
+            # Thêm 'class': 'input' vào đây
+            'TypeName': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ví dụ: Xe máy, Ô tô con, Xe đạp điện'}),
         }
 
 class MonthlyTicketRuleForm(forms.ModelForm):
     class Meta:
         model = MonthlyTicketRules
-        fields = ['VehicleTypeID', 'PricePerMonth'] # Trong CSDL v4, chúng ta đã bỏ Description
+        fields = ['VehicleTypeID', 'PricePerMonth']
         labels = {
             'VehicleTypeID': 'Loại Xe Áp Dụng',
             'PricePerMonth': 'Giá Vé Tháng (VND)',
         }
         widgets = {
-            'PricePerMonth': forms.NumberInput(attrs={'placeholder': 'Ví dụ: 100000'}),
+            # Thêm 'class':'input' vào đây
+            'PricePerMonth': forms.NumberInput(attrs={'class': 'input', 'placeholder': 'Ví dụ: 100000'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -84,10 +87,11 @@ class PerTurnTicketRuleForm(forms.ModelForm):
             'TimeTo': 'Giờ Kết Thúc Ca (HH:MM:SS)',
         }
         widgets = {
-            'Price': forms.NumberInput(attrs={'placeholder': 'Ví dụ: 5000'}),
-            'ShiftName': forms.TextInput(attrs={'placeholder': 'Để trống nếu là giá cố định không theo ca'}),
-            'TimeFrom': forms.TimeInput(attrs={'type': 'time', 'placeholder': 'HH:MM'}),
-            'TimeTo': forms.TimeInput(attrs={'type': 'time', 'placeholder': 'HH:MM'}),
+            'Price': forms.NumberInput(attrs={'class': 'input', 'placeholder': 'Ví dụ: 5000'}),
+            'ShiftName': forms.TextInput(
+                attrs={'class': 'input', 'placeholder': 'Để trống nếu là giá cố định không theo ca'}),
+            'TimeFrom': forms.TimeInput(attrs={'class': 'input', 'type': 'time', 'placeholder': 'HH:MM'}),
+            'TimeTo': forms.TimeInput(attrs={'class': 'input', 'type': 'time', 'placeholder': 'HH:MM'}),
         }
         help_texts = {
             'ShiftName': 'Nếu không nhập Tên Ca, Giờ Bắt Đầu và Giờ Kết Thúc, quy tắc này có thể được coi là giá cố định cho cả ngày (cần logic xử lý riêng trong view nếu muốn).',

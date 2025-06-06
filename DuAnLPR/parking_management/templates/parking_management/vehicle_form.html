@@ -4,7 +4,7 @@
 
 {% block content %}
 <section class="section">
-    <div class="container">
+    <div class="container" style="max-width: 600px;">
         <h2 class="title is-3">{{ page_title }}</h2>
 
         <form method="post" novalidate>
@@ -18,58 +18,49 @@
                 </div>
             {% endif %}
 
+            {# Lặp qua từng trường để render theo chiều dọc #}
             {% for field in form %}
-                <div class="field is-horizontal">
-                    <div class="field-label is-normal">
-                        <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <div class="control {% if field.field.widget.input_type == 'select' or field.field.widget.input_type == 'checkbox' %}is-expanded{% else %}is-expanded{% endif %}">
-                                {% if field.field.widget.input_type == 'select' %}
-                                    <div class="select is-fullwidth">
-                                        {{ field }}
-                                    </div>
-                                {% elif field.field.widget.input_type == 'checkbox' %}
-                                    <label class="checkbox" style="padding-top: 0.5em;"> {# Thêm style để căn chỉnh checkbox #}
-                                        {{ field }}
-                                        {# Không cần label ở đây nếu đã có ở trên #}
-                                    </label>
-                                {% else %}
-                                    {# Thêm class 'input' cho các trường text, v.v. nếu bạn đã tạo custom tag 'add_class' #}
-                                    {# Hoặc để Django tự render #}
-                                    {{ field }}
-                                {% endif %}
-                            </div>
-                            {% if field.help_text %}
-                                <p class="help">{{ field.help_text }}</p>
-                            {% endif %}
-                            {% for error in field.errors %}
-                                 <p class="help is-danger">{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-
-            <div class="field is-horizontal mt-5">
-                <div class="field-label">
-                    </div>
-                <div class="field-body">
+                {# ---- BẮT ĐẦU THAY ĐỔI LOGIC CHO CHECKBOX ---- #}
+                {% if field.name == 'HasMonthlyTicket' %}
                     <div class="field">
                         <div class="control">
-                            <button type="submit" class="button is-success">
-                                <span>Lưu Thay Đổi</span>
-                            </button>
-                            <a href="{% url 'parking_management:vehicle_list' %}" class="button is-light ml-2">
-                                <span>Hủy</span>
-                            </a>
+                            <label class="checkbox">
+                                {{ field }} {# In ra ô checkbox <input> #}
+                                {{ field.label }} {# In ra text của nhãn ngay bên cạnh #}
+                            </label>
                         </div>
+                        {% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                     </div>
+                {% else %}
+                {# Giữ nguyên cấu trúc cho các trường khác #}
+                    <div class="field">
+                        <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        <div class="control">
+                            {% if field.field.widget.input_type == 'select' %}
+                                <div class="select is-fullwidth">
+                                    {{ field }}
+                                </div>
+                            {% else %}
+                                {{ field }}
+                            {% endif %}
+                        </div>
+                        {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+                        {% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+                {# ---- KẾT THÚC THAY ĐỔI LOGIC CHO CHECKBOX ---- #}
+            {% endfor %}
+
+            {# Nút bấm #}
+            <div class="field is-grouped mt-5">
+                <div class="control">
+                    <button type="submit" class="button is-success">Lưu Thay Đổi</button>
+                </div>
+                <div class="control">
+                    <a href="{% url 'parking_management:vehicle_list' %}" class="button is-light">Hủy</a>
                 </div>
             </div>
         </form>
-        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button is-link is-light mt-5">Quay lại Trang chủ</a></p>
     </div>
 </section>
 {% endblock %}
