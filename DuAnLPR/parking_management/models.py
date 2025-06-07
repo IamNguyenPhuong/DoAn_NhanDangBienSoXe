@@ -99,7 +99,7 @@ class PerTurnTicketRules(models.Model):
         db_table = 'PerTurnTicketRules'
 
 
-# 7. Bảng ParkingHistory (Lịch Sử Ra/Vào)
+# 7. Bảng ParkingHistory (Lịch Sử Ra/Vào) - Phiên bản cuối cùng
 class ParkingHistory(models.Model):
     RecordID = models.AutoField(primary_key=True)
     VehicleID = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, blank=True)
@@ -110,15 +110,14 @@ class ParkingHistory(models.Model):
     ProcessedLicensePlateEntry = models.CharField(max_length=50, null=True, blank=True)
     ProcessedLicensePlateExit = models.CharField(max_length=50, null=True, blank=True)
     EntryVehicleImagePath = models.CharField(max_length=255, null=True, blank=True)
-    EntryFaceImagePath = models.CharField(max_length=255, null=True, blank=True)
     ExitVehicleImagePath = models.CharField(max_length=255, null=True, blank=True)
-    ExitFaceImagePath = models.CharField(max_length=255, null=True, blank=True)
-    EntryOcrReadyImagePath = models.CharField(max_length=255, null=True, blank=True)  # Ví dụ trường mới
-    CalculatedFee = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    PerTurnRuleAppliedID = models.ForeignKey(PerTurnTicketRules, on_delete=models.SET_NULL, null=True, blank=True)
+
+    # --- THAY ĐỔI Ở ĐÂY ---
+    CalculatedFee = models.PositiveIntegerField(null=True, blank=True, default=0)
+
+    # PerTurnRuleAppliedID đã bị xóa
     WasMonthlyTicketUsed = models.BooleanField(default=False)
-    EntryCroppedPlateImagePath = models.CharField(max_length=255, null=True, blank=True)
-    ExitCroppedPlateImagePath = models.CharField(max_length=255, null=True, blank=True)  # Nếu bạn làm cho cả xe ra
+
     STATUS_CHOICES = [
         ('IN_YARD', 'Đang trong bãi'),
         ('EXITED', 'Đã rời bãi'),
@@ -139,6 +138,3 @@ class ParkingHistory(models.Model):
         db_table = 'ParkingHistory'
 
 
-from django.db import models
-
-# Create your models here.

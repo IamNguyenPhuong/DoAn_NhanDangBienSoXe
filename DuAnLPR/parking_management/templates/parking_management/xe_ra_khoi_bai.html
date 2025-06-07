@@ -50,6 +50,11 @@
 
         <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
+
+            {% if saved_exit_image_path %}
+                <input type="hidden" name="saved_exit_image_path" value="{{ saved_exit_image_path }}">
+            {% endif %}
+
             <div class="field">
                 <label class="label" for="bien_so_ra">Nhập biển số xe muốn ra:</label>
                 <div class="control">

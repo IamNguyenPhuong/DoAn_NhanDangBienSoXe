@@ -19,3 +19,4 @@ media/
 # Các file bí mật
 *.env
 local_settings.py
+.env

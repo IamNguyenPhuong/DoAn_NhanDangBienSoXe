@@ -191,7 +191,7 @@ def kiem_tra_bien_so_view(request):
 # Hàm tính phí chi tiết
 def calculate_parking_fee_detailed(entry_dt_utc, exit_dt_utc, vehicle_type):
     # ... (Nội dung hàm này giữ nguyên như phiên bản bạn đã có và thấy ổn) ...
-    total_fee = Decimal('0.00')
+    total_fee = 0
     applied_rules_descriptions = []
 
     local_tz = pytz.timezone(timezone.get_current_timezone_name())
@@ -295,16 +295,20 @@ def xe_ra_khoi_bai_view(request):
         'tien_phai_tra': None,
         'entry_time_display': None,
         'exit_time_display': None,
+        'saved_exit_image_path': None,  # <--- THAY ĐỔI: Thêm vào context
     }
 
     if request.method == 'POST':
         bien_so_nhap_tay = request.POST.get('bien_so_ra', '').strip().upper()
         exit_image_file = request.FILES.get('exit_image_upload')
+        # <--- THAY ĐỔI: Lấy lại đường dẫn ảnh đã lưu từ hidden input
+        saved_path_from_hidden_input = request.POST.get('saved_exit_image_path')
 
         bien_so_final = ""
         exit_image_path_to_save = None
 
         if exit_image_file:
+            # Ưu tiên xử lý nếu có file mới được upload
             plate_text_from_ocr, saved_original_path, _ = save_exit_image_and_recognize_plate(exit_image_file)
 
             if saved_original_path:
@@ -312,18 +316,23 @@ def xe_ra_khoi_bai_view(request):
 
             if plate_text_from_ocr and "LOI" not in plate_text_from_ocr.upper() and "KHONG" not in plate_text_from_ocr.upper():
                 bien_so_final = plate_text_from_ocr.upper()
-            else:  # Nếu nhận dạng ảnh lỗi, thử dùng biển số nhập tay
+            else:
                 if bien_so_nhap_tay:
                     bien_so_final = bien_so_nhap_tay
-        elif bien_so_nhap_tay:  # Nếu không có ảnh, dùng biển số nhập tay
+        elif bien_so_nhap_tay:
             bien_so_final = bien_so_nhap_tay
 
-        # Nếu không có biển số cuối cùng (do cả ảnh và nhập tay đều không có/lỗi)
-        if not bien_so_final:
+        # <--- THAY ĐỔI: Nếu không có ảnh mới, dùng lại đường dẫn đã lưu ở bước 1
+        if not exit_image_path_to_save and saved_path_from_hidden_input:
+            exit_image_path_to_save = saved_path_from_hidden_input
+
+        if not bien_so_final and 'action_tim_xe' in request.POST:
             context['thong_bao_loi'] = "Vui lòng nhập biển số hoặc upload ảnh hợp lệ."
             return render(request, 'parking_management/xe_ra_khoi_bai.html', context)
 
         context['bien_so_da_nhap'] = bien_so_final
+        # <--- THAY ĐỔI: Truyền đường dẫn ảnh đã lưu ra template để đưa vào hidden input
+        context['saved_exit_image_path'] = exit_image_path_to_save
 
         lich_su_dang_xu_ly = ParkingHistory.objects.filter(
             (Q(VehicleID__BienSoXe__iexact=bien_so_final) | Q(
@@ -341,10 +350,11 @@ def xe_ra_khoi_bai_view(request):
                 lich_su_dang_xu_ly.ExitTime = timezone.now()
 
                 # CẬP NHẬT ĐƯỜNG DẪN ẢNH VÀ BIỂN SỐ LÚC RA VÀO CSDL
+                # Dòng này bây giờ sẽ nhận đúng giá trị từ biến exit_image_path_to_save
                 lich_su_dang_xu_ly.ExitVehicleImagePath = exit_image_path_to_save
                 lich_su_dang_xu_ly.ProcessedLicensePlateExit = bien_so_final
 
-                phi_gui_xe = Decimal('0.00')
+                phi_gui_xe = 0
                 rules_applied_info = []
 
                 if lich_su_dang_xu_ly.VehicleID and lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket:
@@ -390,10 +400,11 @@ def xe_ra_khoi_bai_view(request):
                 context['entry_time_display'] = entry_time_cho_hien_thi
                 context['exit_time_display'] = lich_su_dang_xu_ly.ExitTime
                 context['lich_su_gui_xe_hien_tai'] = None
-            else:
+            else:  # Logic khi bấm nút "Tìm xe trong bãi"
                 if lich_su_dang_xu_ly.VehicleID:
                     context['thong_bao_text'] = (
-                        f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê...")
+                        f"Tìm thấy xe {lich_su_dang_xu_ly.VehicleID.BienSoXe} của khách thuê "
+                        f"{lich_su_dang_xu_ly.VehicleID.KhachThueID.HoVaTen} đang trong bãi.")
                 else:
                     context['thong_bao_text'] = (f"Tìm thấy xe khách vãng lai {bien_so_final} đang trong bãi.")
                 context[
@@ -676,10 +687,12 @@ def parkinghistory_list_view(request):
     lich_su_list_full = ParkingHistory.objects.select_related(
         'VehicleID',
         'VehicleID__KhachThueID',
-        'VehicleID__VehicleTypeID',
-        'PerTurnRuleAppliedID',
-        'PerTurnRuleAppliedID__VehicleTypeID'
+        'VehicleID__VehicleTypeID'
     ).order_by('-RecordID')
+
+    # --- THÊM DÒNG NÀY ---
+    # Đếm số xe hiện đang ở trong bãi
+    xe_trong_bai_count = ParkingHistory.objects.filter(Status='IN_YARD').count()
 
     query = request.GET.get('q', '')
     if query:
@@ -696,7 +709,8 @@ def parkinghistory_list_view(request):
     context = {
         'page_obj': page_obj,
         'query': query,
-        'page_title': 'Lịch Sử Xe Ra/Vào Bãi'
+        'page_title': 'Lịch Sử Xe Ra/Vào Bãi',
+        'xe_trong_bai_count': xe_trong_bai_count, # --- THÊM VÀO CONTEXT ---
     }
     return render(request, 'parking_management/parkinghistory_list.html', context)
 
@@ -705,7 +719,7 @@ def parkinghistory_list_view(request):
 def thong_ke_doanh_thu_ngay_view(request):
     form = DateSelectionForm(request.GET or None)
     selected_date_obj = None
-    tong_doanh_thu_ngay = Decimal('0.00')
+    tong_doanh_thu_ngay = 0 # Đã sửa ở lần trước
     danh_sach_luot_gui = None
 
     if form.is_valid():
@@ -719,8 +733,8 @@ def thong_ke_doanh_thu_ngay_view(request):
         end_of_day_local_naive = datetime.combine(selected_date_obj, time.max)
         end_of_day_local_aware = timezone.make_aware(end_of_day_local_naive, current_project_tz)
 
-        start_of_day_utc = start_of_day_local_aware.astimezone(pytz.utc)  # Hoặc timezone.utc
-        end_of_day_utc = end_of_day_local_aware.astimezone(pytz.utc)  # Hoặc timezone.utc
+        start_of_day_utc = start_of_day_local_aware.astimezone(pytz.utc)
+        end_of_day_utc = end_of_day_local_aware.astimezone(pytz.utc)
 
         danh_sach_luot_gui = ParkingHistory.objects.filter(
             ExitTime__gte=start_of_day_utc,
@@ -729,15 +743,15 @@ def thong_ke_doanh_thu_ngay_view(request):
             WasMonthlyTicketUsed=False,
             CalculatedFee__isnull=False
         ).select_related(
+            # --- THAY ĐỔI Ở CÁC DÒNG DƯỚI ĐÂY ---
             'VehicleID',
             'VehicleID__VehicleTypeID',
-            'VehicleID__KhachThueID',  # Thêm để có thể truy cập KhachThueID.HoVaTen nếu cần
-            'PerTurnRuleAppliedID'
-        ).order_by('ExitTime')  # Sắp xếp theo thời gian ra
+            'VehicleID__KhachThueID'
+            # Đã xóa 'PerTurnRuleAppliedID' khỏi đây
+        ).order_by('ExitTime')
 
         aggregation = danh_sach_luot_gui.aggregate(total_revenue=Sum('CalculatedFee'))
-        tong_doanh_thu_ngay = aggregation['total_revenue'] if aggregation['total_revenue'] is not None else Decimal(
-            '0.00')
+        tong_doanh_thu_ngay = aggregation['total_revenue'] if aggregation['total_revenue'] is not None else 0 # Đã sửa ở lần trước
 
     context = {
         'form': form,
@@ -754,7 +768,7 @@ def thong_ke_doanh_thu_thang_view(request):
     form = MonthYearSelectionForm(request.GET or None)
     selected_month_num = None
     selected_year_num = None
-    tong_doanh_thu_ve_luot_thang = Decimal('0.00')
+    tong_doanh_thu_ve_luot_thang = 0
     danh_sach_luot_gui_thang = None
     # Thêm phần thống kê vé tháng (sẽ phức tạp hơn)
     # so_luong_ve_thang_ban_duoc = 0
@@ -791,8 +805,7 @@ def thong_ke_doanh_thu_thang_view(request):
 
         aggregation_luot = danh_sach_luot_gui_thang.aggregate(total_revenue_luot=Sum('CalculatedFee'))
         tong_doanh_thu_ve_luot_thang = aggregation_luot['total_revenue_luot'] if aggregation_luot[
-                                                                                     'total_revenue_luot'] is not None else Decimal(
-            '0.00')
+                                                                                     'total_revenue_luot'] is not None else 0
 
         # 2. Thống kê vé tháng (Phần này cần logic phức tạp hơn dựa trên cách bạn quản lý việc thu tiền vé tháng)
         # Ví dụ đơn giản: Đếm số xe đang có HasMonthlyTicket=True trong tháng đó
