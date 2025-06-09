@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 LANGUAGE_CODE = 'vi-vn'  # Đặt mã ngôn ngữ là tiếng Việt
 
 TIME_ZONE = 'Asia/Ho_Chi_Minh' # Đây là múi giờ cho Việt Nam (GMT+7)
