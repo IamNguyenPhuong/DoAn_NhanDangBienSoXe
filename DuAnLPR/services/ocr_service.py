@@ -5,9 +5,6 @@ import base64
 import os
 
 def recognize_license_plate(image_data: bytes, mime_type: str) -> dict:
-    """
-    Gửi dữ liệu ảnh đến Google Gemini API để nhận dạng biển số xe.
-    """
     api_key = os.getenv("API_KEY")
 
     if not api_key:

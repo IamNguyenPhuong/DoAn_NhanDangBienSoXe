@@ -11,19 +11,18 @@
         <form method="get" class="mb-5">
             <div class="field is-grouped">
                 <div class="control">
-                    {{ form.selected_month.label_tag }}
+                    <label class="label" for="{{ form.selected_month.id_for_label }}">Chọn tháng</label>
                     <div class="select">
                         {{ form.selected_month }}
                     </div>
                 </div>
                 <div class="control">
-                    {{ form.selected_year.label_tag }}
+                    <label class="label" for="{{ form.selected_year.id_for_label }}">Chọn năm</label>
                     <div class="select">
                         {{ form.selected_year }}
                     </div>
                 </div>
-                <div class="control">
-                    <label class="label">&nbsp;</label>
+                <div class="control" style="align-self: flex-end;">
                     <button type="submit" class="button is-info">Xem Thống Kê</button>
                 </div>
             </div>
@@ -43,31 +42,16 @@
                 </p>
             </div>
 
-            {# PHẦN NÀY TÔI GIỮ NGUYÊN NHƯ TRONG FILE BẠN GỬI, VÌ LOGIC VÉ THÁNG CHƯA HOÀN THIỆN TRONG VIEW #}
-            {# {% if doanh_thu_tu_ve_thang is not None %}
-            <div class="notification is-primary is-light mt-4">
-                <p class="title is-5">Tổng doanh thu từ Vé Tháng (ước tính):
-                    <strong>{{ doanh_thu_tu_ve_thang|floatformat:0|intcomma }} VND</strong>
-                    (dựa trên {{ so_luong_ve_thang_ban_duoc }} xe đăng ký)
-                </p>
-            </div>
-            <div class="notification is-success mt-4">
-                <p class="title is-5">TỔNG DOANH THU THÁNG (Lượt + Tháng ước tính):
-                    <strong>{{ tong_doanh_thu_thang|floatformat:0|intcomma }} VND</strong>
-                </p>
-            </div>
-            {% endif %} #}
-
             {% if danh_sach_luot_gui_thang %}
                 <h4 class="title is-5 mt-5">Chi tiết các lượt gửi (vé lượt) trong tháng:</h4>
                 <p> (Hiển thị {{ danh_sach_luot_gui_thang.count }} lượt)</p>
 
-                <div class="table-container mt-3"> {# Thêm table-container và margin-top #}
+                <div class="table-container mt-3">
                     <table class="table is-striped is-fullwidth is-hoverable is-narrow">
                         <thead>
                             <tr>
                                 <th>ID Lượt</th>
-                                <th>Biển Số Xe</th> {# ĐỔI TÊN CỘT VÀ SỬA LOGIC HIỂN THỊ #}
+                                <th>Biển Số Xe</th>
                                 <th>Loại Xe</th>
                                 <th>TG Vào</th>
                                 <th>TG Ra</th>
@@ -80,7 +64,6 @@
                                 <td>{{ record.RecordID }}</td>
                                 <td>
                                     <strong>
-                                        {# Ưu tiên biển số lúc ra, rồi đến lúc vào, cuối cùng là biển số đăng ký nếu có #}
                                         {% if record.ProcessedLicensePlateExit %}
                                             {{ record.ProcessedLicensePlateExit }}
                                         {% elif record.ProcessedLicensePlateEntry %}
@@ -96,7 +79,7 @@
                                     {% if record.VehicleID and record.VehicleID.VehicleTypeID %}
                                         {{ record.VehicleID.VehicleTypeID.TypeName }}
                                     {% else %}
-                                        Xe máy {# Giả định cho khách vãng lai #}
+                                        Xe máy
                                     {% endif %}
                                 </td>
                                 <td>{{ record.EntryTime|localtime|date:"H:i d/m/Y" }}</td>
@@ -114,9 +97,9 @@
             {% endif %}
 
         {% else %}
-            {% if request.GET.selected_month and request.GET.selected_year and not form.errors %} {# Đã submit nhưng có thể tháng/năm không có dữ liệu hoặc form không valid ở lần đầu #}
+            {% if request.GET.selected_month and request.GET.selected_year and not form.errors %}
                 <p class="mt-4">Vui lòng chọn tháng và năm hợp lệ hoặc không có dữ liệu cho lựa chọn này.</p>
-            {% elif not request.GET %} {# Lần đầu vào trang #}
+            {% elif not request.GET %}
                  <p class="mt-4">Chọn tháng và năm để xem thống kê doanh thu.</p>
             {% endif %}
         {% endif %}

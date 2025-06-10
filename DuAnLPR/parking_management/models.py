@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
+from django.utils import timezone # Thêm import này
 
 # Hàm kiểm tra số điện thoạ
 phone_regex = RegexValidator(
