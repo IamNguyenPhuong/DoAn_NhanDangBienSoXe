@@ -1,20 +1,26 @@
 from django import forms
 from .models import KhachThue, Vehicle, VehicleTypes, MonthlyTicketRules, PerTurnTicketRules
 from datetime import datetime
+# iamnguyenphuong/doan_nhandangbiensoxe/DoAn_NhanDangBienSoXe-ac4235a7a896f4f8dcec6ccd0440928a26a33a93/DuAnLPR/parking_management/forms.py
+
+from django import forms
+from .models import KhachThue #, các model khác
+# ... các form khác
+
 class KhachThueForm(forms.ModelForm):
     class Meta:
         model = KhachThue
         fields = ['HoVaTen', 'NgaySinh', 'GioiTinh', 'SoDienThoai']
         labels = {
             'HoVaTen': 'Họ và Tên',
-            'NgaySinh': 'Ngày Sinh', # Đã sửa
+            'NgaySinh': 'Ngày Sinh',
             'GioiTinh': 'Giới Tính',
             'SoDienThoai': 'Số Điện Thoại',
         }
         widgets = {
             'HoVaTen': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nhập họ và tên'}),
             'NgaySinh': forms.DateInput(attrs={'type': 'date', 'class': 'input'}),
-            'GioiTinh': forms.Select(attrs={'class': 'input'}), # Django sẽ tự dùng choices từ model
+            'GioiTinh': forms.Select(attrs={'class': 'input'}),
             'SoDienThoai': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Nhập đúng 10 chữ số', 'type': 'tel'}),
         }
 
@@ -30,7 +36,6 @@ class VehicleForm(forms.ModelForm):
         }
         widgets = {
             'BienSoXe': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ví dụ: 29A1-12345'}),
-            # <-- THÊM 'class': 'input' VÀO ĐÂY
             'HasMonthlyTicket': forms.CheckboxInput(),
         }
 

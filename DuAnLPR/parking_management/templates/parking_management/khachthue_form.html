@@ -6,17 +6,31 @@
 {% block content %}
 <div class="container section">
     <h2 class="title is-3">{{ page_title }}</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }} {# Render form với các đoạn <p> #}
-        <div class="field is-grouped">
+   <form method="post" novalidate>
+    {% csrf_token %}
+
+    {% for field in form %}
+        <div class="field">
+            <label class="label" for="{{ field.id_for_label }}">{{ field.label }}</label>
             <div class="control">
-                <button type="submit" class="button is-success">Lưu</button>
+                {{ field }}
             </div>
-            <div class="control">
-                <a href="{% url 'parking_management:khachthue_list' %}" class="button is-light">Hủy</a>
-            </div>
+            {% if field.errors %}
+                {% for error in field.errors %}
+                    <p class="help is-danger">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
         </div>
-    </form>
+    {% endfor %}
+
+    <div class="field is-grouped">
+        <div class="control">
+            <button type="submit" class="button is-success">Lưu</button>
+        </div>
+        <div class="control">
+            <a href="{% url 'parking_management:khachthue_list' %}" class="button is-danger">Hủy</a>
+        </div>
+    </div>
+</form>
 </div>
 {% endblock %}

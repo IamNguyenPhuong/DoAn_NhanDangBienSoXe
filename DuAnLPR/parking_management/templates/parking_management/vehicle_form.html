@@ -48,7 +48,6 @@
                         {% for error in field.errors %}<p class="help is-danger">{{ error }}</p>{% endfor %}
                     </div>
                 {% endif %}
-                {# ---- KẾT THÚC THAY ĐỔI LOGIC CHO CHECKBOX ---- #}
             {% endfor %}
 
             {# Nút bấm #}
@@ -57,7 +56,7 @@
                     <button type="submit" class="button is-success">Lưu Thay Đổi</button>
                 </div>
                 <div class="control">
-                    <a href="{% url 'parking_management:vehicle_list' %}" class="button is-light">Hủy</a>
+                    <a href="{% url 'parking_management:vehicle_list' %}" class="button is-danger">Hủy</a>
                 </div>
             </div>
         </form>
