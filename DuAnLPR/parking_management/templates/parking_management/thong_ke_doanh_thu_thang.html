@@ -1,109 +1,71 @@
-{% extends "parking_management/base_user.html" %}
-{% load humanize tz %}
+{% extends 'parking_management/base_user.html' %}
+{% load humanize %}
 
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}Thống kê Doanh thu Tháng{% endblock %}
 
 {% block content %}
 <section class="section">
     <div class="container">
-        <h2 class="title is-3">{{ page_title }}</h2>
+        <h1 class="title">Thống kê Doanh thu Tháng</h1>
 
         <form method="get" class="mb-5">
-            <div class="field is-grouped">
+            <div class="field has-addons">
                 <div class="control">
-                    <label class="label" for="{{ form.selected_month.id_for_label }}">Chọn tháng</label>
                     <div class="select">
                         {{ form.selected_month }}
                     </div>
                 </div>
                 <div class="control">
-                    <label class="label" for="{{ form.selected_year.id_for_label }}">Chọn năm</label>
                     <div class="select">
                         {{ form.selected_year }}
                     </div>
                 </div>
-                <div class="control" style="align-self: flex-end;">
-                    <button type="submit" class="button is-info">Xem Thống Kê</button>
+                <div class="control">
+                    <button class="button is-link">Xem</button>
                 </div>
             </div>
-            {% if form.errors %}
-                <div class="notification is-danger">
-                    <p>Vui lòng chọn tháng và năm hợp lệ.</p>
-                </div>
-            {% endif %}
         </form>
 
-        {% if selected_month and selected_year %}
-            <h3 class="title is-4">Kết quả cho: Tháng {{ selected_month|date:"m" }} Năm {{ selected_year }}</h3>
-
-            <div class="notification is-link is-light">
-                <p class="title is-5">Tổng doanh thu từ Vé Lượt:
-                    <strong>{{ tong_doanh_thu_ve_luot_thang|floatformat:0|intcomma }} VND</strong>
-                </p>
-            </div>
-
-            {% if danh_sach_luot_gui_thang %}
-                <h4 class="title is-5 mt-5">Chi tiết các lượt gửi (vé lượt) trong tháng:</h4>
-                <p> (Hiển thị {{ danh_sach_luot_gui_thang.count }} lượt)</p>
-
-                <div class="table-container mt-3">
-                    <table class="table is-striped is-fullwidth is-hoverable is-narrow">
+        {% if selected_year and selected_month %}
+            <h2 class="subtitle">Báo cáo doanh thu tháng {{ selected_month }}/{{ selected_year }}</h2>
+            <div class="box">
+                <div class="table-container">
+                    <table class="table is-bordered is-striped is-hoverable is-fullwidth">
                         <thead>
                             <tr>
-                                <th>ID Lượt</th>
-                                <th>Biển Số Xe</th>
-                                <th>Loại Xe</th>
-                                <th>TG Vào</th>
-                                <th>TG Ra</th>
-                                <th>Phí Thu (VND)</th>
+                                <th style="width: 10%;">STT</th>
+                                <th>Loại vé</th>
+                                <th class="has-text-right">Doanh thu (VNĐ)</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for record in danh_sach_luot_gui_thang %}
+                            {% for item in summary_data %}
                             <tr>
-                                <td>{{ record.RecordID }}</td>
-                                <td>
-                                    <strong>
-                                        {% if record.ProcessedLicensePlateExit %}
-                                            {{ record.ProcessedLicensePlateExit }}
-                                        {% elif record.ProcessedLicensePlateEntry %}
-                                            {{ record.ProcessedLicensePlateEntry }}
-                                        {% elif record.VehicleID and record.VehicleID.BienSoXe %}
-                                            {{ record.VehicleID.BienSoXe }}
-                                        {% else %}
-                                            N/A
-                                        {% endif %}
-                                    </strong>
-                                </td>
-                                <td>
-                                    {% if record.VehicleID and record.VehicleID.VehicleTypeID %}
-                                        {{ record.VehicleID.VehicleTypeID.TypeName }}
-                                    {% else %}
-                                        Xe máy
-                                    {% endif %}
-                                </td>
-                                <td>{{ record.EntryTime|localtime|date:"H:i d/m/Y" }}</td>
-                                <td>{{ record.ExitTime|localtime|date:"H:i d/m/Y" }}</td>
-                                <td>{{ record.CalculatedFee|floatformat:0|intcomma }}</td>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ item.type }}</td>
+                                <td class="has-text-right">{{ item.revenue|intcomma }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="has-text-centered">Không có doanh thu trong khoảng thời gian này.</td>
                             </tr>
                             {% endfor %}
                         </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="has-text-left is-size-5 has-text-weight-bold" >Tổng cộng</th>
+                                <th class="has-text-right is-size-5 has-text-weight-bold">{{ tong_doanh_thu|intcomma }}</th>
+                            </tr>
+                        </tfoot>
                     </table>
                 </div>
-            {% else %}
-                 {% if form.is_valid %}
-                    <p class="mt-4">Không có lượt gửi xe (vé lượt) nào có phí trong tháng này.</p>
-                 {% endif %}
-            {% endif %}
-
+            </div>
         {% else %}
-            {% if request.GET.selected_month and request.GET.selected_year and not form.errors %}
-                <p class="mt-4">Vui lòng chọn tháng và năm hợp lệ hoặc không có dữ liệu cho lựa chọn này.</p>
-            {% elif not request.GET %}
-                 <p class="mt-4">Chọn tháng và năm để xem thống kê doanh thu.</p>
-            {% endif %}
+            <div class="notification is-info is-light mt-5">
+              Vui lòng chọn tháng và năm để xem báo cáo.
+            </div>
         {% endif %}
-        <p><a href="{% url 'parking_management:user_dashboard' %}" class="button mt-5">Quay lại Trang chủ</a></p>
+
     </div>
 </section>
 {% endblock %}

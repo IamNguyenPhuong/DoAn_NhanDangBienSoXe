@@ -72,6 +72,7 @@
                           Quản Lý Lịch Sử Ra/Vào
                         </a>
 
+
                         <div class="navbar-item has-dropdown is-hoverable">
                             <a class="navbar-link {% if request.resolver_match.url_name in 'khachthue_list,vehicle_list,vehicletype_list' %}is-active{% endif %}">
                                 Quản Lý Dữ Liệu
@@ -83,6 +84,10 @@
                                 <a class="navbar-item" href="{% url 'parking_management:vehicle_list' %}">
                                     Xe Đăng Ký
                                 </a>
+
+                                <a href="{% url 'parking_management:monthly_sale_list' %}" class="navbar-item">
+                                Giao Dịch Vé Tháng
+                                 </a>
                                 <a class="navbar-item" href="{% url 'parking_management:vehicletype_list' %}">
                                     Loại Xe
                                 </a>

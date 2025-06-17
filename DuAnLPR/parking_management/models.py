@@ -56,7 +56,7 @@ class Vehicle(models.Model):
     KhachThueID = models.ForeignKey(KhachThue, on_delete=models.CASCADE)
     BienSoXe = models.CharField(max_length=50, unique=True)
     VehicleTypeID = models.ForeignKey(VehicleTypes, on_delete=models.RESTRICT)
-    HasMonthlyTicket = models.BooleanField(default=False)
+
 
     def __str__(self):
         return self.BienSoXe
@@ -138,4 +138,18 @@ class ParkingHistory(models.Model):
     class Meta:
         db_table = 'ParkingHistory'
 
+class GhiNhanVeThang(models.Model):
+    """Lưu lại lịch sử các giao dịch mua vé tháng."""
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, verbose_name="Xe đăng ký")
+    purchase_date = models.DateField(auto_now_add=True, verbose_name="Ngày mua")
+    expiry_date = models.DateField(verbose_name="Ngày hết hạn")
+    price = models.PositiveIntegerField(verbose_name="Số tiền đã trả")
+
+    def __str__(self):
+        return f"Vé tháng cho {self.vehicle.BienSoXe} - Hạn: {self.expiry_date.strftime('%d/%m/%Y')}"
+
+    class Meta:
+        verbose_name = "Ghi nhận vé tháng"
+        verbose_name_plural = "Các ghi nhận vé tháng"
+        ordering = ['-purchase_date']
 

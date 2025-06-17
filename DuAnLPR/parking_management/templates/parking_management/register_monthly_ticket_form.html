@@ -1,0 +1,33 @@
+{% extends 'parking_management/base_user.html' %}
+{% load humanize %}
+
+{% block title %}Xác nhận Đăng ký Vé tháng{% endblock %}
+
+{% block content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Xác nhận Đăng ký Vé tháng</h1>
+        <p class="subtitle">Vui lòng kiểm tra thông tin trước khi xác nhận.</p>
+
+        <div class="box">
+            <p><strong>Biển số xe:</strong> {{ vehicle.BienSoXe }}</p>
+            <p><strong>Chủ sở hữu:</strong> {{ vehicle.OwnerID.HoTen }}</p>
+            <p><strong>Loại xe:</strong> {{ vehicle.VehicleTypeID.VehicleTypeName }}</p>
+            <p class="has-text-weight-bold"><strong>Giá vé tháng:</strong> <span class="tag is-info is-large">{{ price|intcomma }} VNĐ</span></p>
+            <p><small>(Vé sẽ có hiệu lực 30 ngày kể từ hôm nay)</small></p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="field is-grouped">
+                <div class="control">
+                    <button type="submit" class="button is-success">Xác nhận Đăng ký</button>
+                </div>
+                <div class="control">
+                   <a href="{% url 'parking_management:vehicle_list' %}" class="button is-light">Hủy bỏ</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

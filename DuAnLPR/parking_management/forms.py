@@ -27,16 +27,16 @@ class KhachThueForm(forms.ModelForm):
 class VehicleForm(forms.ModelForm):
     class Meta:
         model = Vehicle
-        fields = ['KhachThueID', 'BienSoXe', 'VehicleTypeID', 'HasMonthlyTicket']
+        fields = ['KhachThueID', 'BienSoXe', 'VehicleTypeID']
         labels = {
             'KhachThueID': 'Chủ Sở Hữu (Khách Thuê)',
             'BienSoXe': 'Biển Số Xe',
             'VehicleTypeID': 'Loại Xe',
-            'HasMonthlyTicket': 'Đăng Ký Vé Tháng',
+
         }
         widgets = {
             'BienSoXe': forms.TextInput(attrs={'class': 'input', 'placeholder': 'Ví dụ: 29A1-12345'}),
-            'HasMonthlyTicket': forms.CheckboxInput(),
+
         }
 
     def __init__(self, *args, **kwargs):

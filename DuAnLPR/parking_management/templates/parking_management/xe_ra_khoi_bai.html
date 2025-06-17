@@ -129,7 +129,7 @@
             <div class="notification is-success mt-4">
                 <p>{{ thong_bao_thanh_cong }}</p>
                 {% if tien_phai_tra is not None %}
-                    <p>Số tiền phải trả: <strong>{{ tien_phai_tra|floatformat:0|intcomma }} VND</strong></p>
+                   <p>Số tiền phải trả: <strong>{{ tien_phai_tra|intcomma }} VND</strong></p>
                 {% endif %}
 
                 {% if entry_time_display and exit_time_display %}

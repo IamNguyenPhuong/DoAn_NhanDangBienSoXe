@@ -23,6 +23,9 @@ urlpatterns = [
     path('xe/them/', views.vehicle_create_view, name='vehicle_create'),
     path('xe/sua/<int:vehicle_id>/', views.vehicle_update_view, name='vehicle_update'),
     path('xe/xoa/<int:vehicle_id>/', views.vehicle_delete_view, name='vehicle_delete'),
+    path('vehicle/<int:vehicle_id>/register-monthly/', views.register_monthly_ticket_view,
+         name='register_monthly_ticket'),
+    path('monthly-sales/', views.monthly_sale_list_view, name='monthly_sale_list'),
 
     # URLs cho quản lý VehicleTypes
     path('loai-xe/', views.vehicletype_list_view, name='vehicletype_list'),

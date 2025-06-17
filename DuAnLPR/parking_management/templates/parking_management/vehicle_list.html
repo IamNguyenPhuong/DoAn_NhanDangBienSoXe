@@ -37,16 +37,20 @@
                         <td>{{ xe.KhachThueID.HoVaTen }} </td>
                         <td>{{ xe.VehicleTypeID.TypeName }}</td>
                         <td>
-                            {% if xe.HasMonthlyTicket %}
-                                <span class="tag is-success is-light">Có</span>
-                            {% else %}
-                                <span class="tag is-warning is-light">Không</span>
-                            {% endif %}
-                        </td>
+    {% if xe.has_active_ticket %}
+        <span class="tag is-success">Có</span>
+    {% else %}
+        <span class="tag is-light">Không</span>
+    {% endif %}
+</td>
                         <td>
-                            <a href="{% url 'parking_management:vehicle_update' xe.VehicleID %}" class="button is-small is-info">Sửa</a>
-                            <a href="{% url 'parking_management:vehicle_delete' xe.VehicleID %}" class="button is-small is-danger">Xóa</a>
-                        </td>
+    <a href="{% url 'parking_management:vehicle_update' xe.VehicleID %}" class="button is-small is-info">Sửa</a>
+    <a href="{% url 'parking_management:vehicle_delete' xe.VehicleID %}" class="button is-small is-danger">Xóa</a>
+
+    <a href="{% url 'parking_management:register_monthly_ticket' xe.VehicleID %}" class="button is-small is-success">
+        ĐK Vé Tháng
+    </a>
+    </td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -4,7 +4,11 @@ import uuid
 from calendar import monthrange
 from datetime import datetime, time, timedelta
 from decimal import Decimal
-
+from django.db.models import Exists, OuterRef
+from calendar import monthrange
+from datetime import datetime
+import pytz
+from django.conf import settings # Thêm import này để lấy TIME_ZONE
 # Third-party Imports
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
@@ -16,6 +20,8 @@ from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 import pytz
+from datetime import timedelta
+from .models import GhiNhanVeThang, MonthlyTicketRules
 
 # Local Application Imports
 from .forms import (DateSelectionForm, KhachThueForm, MonthYearSelectionForm,
@@ -470,10 +476,19 @@ def khachthue_delete_view(request, khachthue_id):
 # --- Các View CRUD cho Vehicle ---
 @login_required
 def vehicle_list_view(request):
-    danh_sach_xe = Vehicle.objects.select_related('KhachThueID', 'VehicleTypeID').all().order_by('VehicleID')
+    today = timezone.now().date()
+
+    active_ticket_subquery = GhiNhanVeThang.objects.filter(
+        vehicle=OuterRef('pk'),
+        expiry_date__gte=today
+    )
+
+    danh_sach_xe = Vehicle.objects.annotate(
+        has_active_ticket=Exists(active_ticket_subquery)
+    ).select_related('KhachThueID', 'VehicleTypeID').order_by('VehicleID')
+
     context = {'danh_sach_xe': danh_sach_xe}
     return render(request, 'parking_management/vehicle_list.html', context)
-
 
 @login_required
 def vehicle_create_view(request):
@@ -517,12 +532,13 @@ def vehicle_delete_view(request, vehicle_id):
 
 
 # --- Các View CRUD cho VehicleTypes ---
+# Trong file parking_management/views.py
+
 @login_required
 def vehicletype_list_view(request):
     danh_sach_loai_xe = VehicleTypes.objects.all().order_by('VehicleTypeID')
     context = {'danh_sach_loai_xe': danh_sach_loai_xe}
     return render(request, 'parking_management/vehicletype_list.html', context)
-
 
 @login_required
 def vehicletype_create_view(request):
@@ -766,90 +782,116 @@ def thong_ke_doanh_thu_ngay_view(request):
 @login_required
 def thong_ke_doanh_thu_thang_view(request):
     form = MonthYearSelectionForm(request.GET or None)
+    summary_data = []
+    tong_doanh_thu = 0
     selected_month_num = None
     selected_year_num = None
-    tong_doanh_thu_ve_luot_thang = 0
-    danh_sach_luot_gui_thang = None
-    # Thêm phần thống kê vé tháng (sẽ phức tạp hơn)
-    # so_luong_ve_thang_ban_duoc = 0
-    # doanh_thu_tu_ve_thang = Decimal('0.00')
 
     if form.is_valid():
         selected_month_num = int(form.cleaned_data['selected_month'])
         selected_year_num = int(form.cleaned_data['selected_year'])
 
+        # --- LOGIC TÍNH TOÁN VÉ LƯỢT (PHIÊN BẢN SỬA LỖI) ---
         # Xác định ngày đầu và ngày cuối của tháng đã chọn
         _, num_days_in_month = monthrange(selected_year_num, selected_month_num)
-        start_date_of_month = datetime(selected_year_num, selected_month_num, 1)
-        end_date_of_month = datetime(selected_year_num, selected_month_num, num_days_in_month)
+        start_date = datetime(selected_year_num, selected_month_num, 1)
+        end_date = datetime(selected_year_num, selected_month_num, num_days_in_month, 23, 59, 59)
 
-        current_project_tz = timezone.get_current_timezone()
+        # Chuyển sang múi giờ của dự án để đảm bảo truy vấn chính xác
+        current_tz = pytz.timezone(settings.TIME_ZONE)
+        start_date_aware = current_tz.localize(start_date)
+        end_date_aware = current_tz.localize(end_date)
 
-        start_of_month_local_aware = timezone.make_aware(datetime.combine(start_date_of_month, time.min),
-                                                         current_project_tz)
-        end_of_month_local_aware = timezone.make_aware(datetime.combine(end_date_of_month, time.max),
-                                                       current_project_tz)
-
-        start_of_month_utc = start_of_month_local_aware.astimezone(pytz.utc)
-        end_of_month_utc = end_of_month_local_aware.astimezone(pytz.utc)
-
-        # 1. Thống kê doanh thu vé lượt trong tháng
-        danh_sach_luot_gui_thang = ParkingHistory.objects.filter(
-            ExitTime__gte=start_of_month_utc,
-            ExitTime__lte=end_of_month_utc,
+        # Câu lệnh truy vấn chính xác hơn
+        doanh_thu_ve_luot = ParkingHistory.objects.filter(
+            ExitTime__gte=start_date_aware,
+            ExitTime__lte=end_date_aware,
             Status='EXITED',
-            WasMonthlyTicketUsed=False,
-            CalculatedFee__isnull=False
-        ).select_related('VehicleID',
-                         'VehicleID__VehicleTypeID')  # Bỏ PerTurnRuleAppliedID nếu không hiển thị chi tiết rule
+            WasMonthlyTicketUsed=False
+        ).aggregate(total=Sum('CalculatedFee'))['total'] or 0
 
-        aggregation_luot = danh_sach_luot_gui_thang.aggregate(total_revenue_luot=Sum('CalculatedFee'))
-        tong_doanh_thu_ve_luot_thang = aggregation_luot['total_revenue_luot'] if aggregation_luot[
-                                                                                     'total_revenue_luot'] is not None else 0
+        # --- KẾT THÚC LOGIC SỬA LỖI ---
 
-        # 2. Thống kê vé tháng (Phần này cần logic phức tạp hơn dựa trên cách bạn quản lý việc thu tiền vé tháng)
-        # Ví dụ đơn giản: Đếm số xe đang có HasMonthlyTicket=True trong tháng đó
-        # (Cách này không phản ánh đúng doanh thu nếu không có bảng ghi nhận giao dịch vé tháng)
-        #
-        # Hoặc, nếu bạn có một cách để xác định xe nào đã "mua" vé tháng trong tháng đó:
-        # vehicles_with_monthly_ticket_in_month = Vehicle.objects.filter(
-        #     HasMonthlyTicket=True,
-        #     # Thêm điều kiện để lọc theo tháng/năm mà vé được kích hoạt/mua
-        #     # Ví dụ: nếu bạn có trường `ngay_kich_hoat_ve_thang` trong model Vehicle:
-        #     # ngay_kich_hoat_ve_thang__year=selected_year_num,
-        #     # ngay_kich_hoat_ve_thang__month=selected_month_num
-        # ).select_related('VehicleTypeID', 'VehicleTypeID__monthlyticketrules')
-        # # Giả sử MonthlyTicketRules có related_name là 'monthlyticketrules' từ VehicleType
-        # # Hoặc query trực tiếp MonthlyTicketRules
-        #
-        # for vehicle_ve_thang in vehicles_with_monthly_ticket_in_month:
-        #     try:
-        #         # Tìm quy tắc giá vé tháng cho loại xe này
-        #         rule_ve_thang = MonthlyTicketRules.objects.get(VehicleTypeID=vehicle_ve_thang.VehicleTypeID)
-        #         doanh_thu_tu_ve_thang += rule_ve_thang.PricePerMonth
-        #         so_luong_ve_thang_ban_duoc += 1
-        #     except MonthlyTicketRules.DoesNotExist:
-        #         pass # Bỏ qua nếu không có rule giá cho loại xe này
-        #     except MonthlyTicketRules.MultipleObjectsReturned:
-        #         # Xử lý nếu có nhiều rule cho cùng 1 loại xe (nên tránh trong thiết kế)
-        #         rule_ve_thang = MonthlyTicketRules.objects.filter(VehicleTypeID=vehicle_ve_thang.VehicleTypeID).first()
-        #         if rule_ve_thang:
-        #             doanh_thu_tu_ve_thang += rule_ve_thang.PricePerMonth
-        #             so_luong_ve_thang_ban_duoc += 1
+        # Tính doanh thu vé tháng
+        doanh_thu_ve_thang = GhiNhanVeThang.objects.filter(
+            purchase_date__year=selected_year_num,
+            purchase_date__month=selected_month_num
+        ).aggregate(total=Sum('price'))['total'] or 0
+        doanh_thu_ve_thang = doanh_thu_ve_thang or 0
 
-        # Tạm thời, chúng ta sẽ chỉ tập trung vào doanh thu vé lượt
-        # Doanh thu vé tháng sẽ cần một cơ chế ghi nhận giao dịch cụ thể hơn.
-        # Bạn có thể hiển thị số lượng xe đang được đánh dấu HasMonthlyTicket (nhưng không phải là doanh thu tháng đó)
+        summary_data = [
+            {'type': 'Vé lượt', 'revenue': doanh_thu_ve_luot},
+            {'type': 'Vé tháng', 'revenue': doanh_thu_ve_thang},
+        ]
+        tong_doanh_thu = doanh_thu_ve_luot + doanh_thu_ve_thang
 
     context = {
         'form': form,
-        'selected_month': datetime(2000, selected_month_num, 1) if selected_month_num else None,  # Để lấy tên tháng
+        'summary_data': summary_data,
+        'tong_doanh_thu': tong_doanh_thu,
+        'selected_month': selected_month_num,
         'selected_year': selected_year_num,
-        'tong_doanh_thu_ve_luot_thang': tong_doanh_thu_ve_luot_thang,
-        'danh_sach_luot_gui_thang': danh_sach_luot_gui_thang,  # Để có thể hiển thị chi tiết nếu muốn
-        # 'so_luong_ve_thang_ban_duoc': so_luong_ve_thang_ban_duoc,
-        # 'doanh_thu_tu_ve_thang': doanh_thu_tu_ve_thang,
-        # 'tong_doanh_thu_thang': tong_doanh_thu_ve_luot_thang + doanh_thu_tu_ve_thang,
         'page_title': 'Thống Kê Doanh Thu Theo Tháng'
     }
     return render(request, 'parking_management/thong_ke_doanh_thu_thang.html', context)
+# === KẾT THÚC CODE THAY THẾ ===
+
+@login_required
+def register_monthly_ticket_view(request, vehicle_id):
+    vehicle = get_object_or_404(Vehicle, pk=vehicle_id)
+
+    # --- LOGIC MỚI: KIỂM TRA VÉ ĐÃ TỒN TẠI VÀ CÒN HẠN ---
+    today = timezone.now().date()
+    active_ticket = GhiNhanVeThang.objects.filter(
+        vehicle=vehicle,
+        expiry_date__gte=today  # Tìm vé nào có ngày hết hạn >= hôm nay
+    ).first()  # Dùng .first() để lấy ra đối tượng vé nếu có
+
+    if active_ticket:
+        # Nếu tìm thấy vé còn hạn, hiển thị cảnh báo và chuyển hướng
+        messages.warning(request,
+                         f"Xe {vehicle.BienSoXe} đã có vé tháng còn hiệu lực đến hết ngày {active_ticket.expiry_date.strftime('%d-%m-%Y')}.")
+        return redirect('parking_management:vehicle_list')
+    # --- KẾT THÚC LOGIC MỚI ---
+
+    # Nếu không có vé nào còn hạn, thì tiếp tục xử lý như cũ
+    try:
+        ticket_rule = MonthlyTicketRules.objects.get(VehicleTypeID=vehicle.VehicleTypeID)
+        price = ticket_rule.PricePerMonth
+    except MonthlyTicketRules.DoesNotExist:
+        messages.error(request,
+                       f"Chưa có quy định giá vé tháng cho loại xe '{vehicle.VehicleTypeID.TypeName}'. Vui lòng thiết lập giá trước.")
+        return redirect('parking_management:vehicle_list')
+
+    if request.method == 'POST':
+        expiry_date = today + timedelta(days=30)
+
+        GhiNhanVeThang.objects.create(
+            vehicle=vehicle,
+            expiry_date=expiry_date,
+            price=price
+        )
+        messages.success(request,
+                         f"Đăng ký vé tháng thành công cho xe {vehicle.BienSoXe} đến hết ngày {expiry_date.strftime('%d-%m-%Y')}.")
+        return redirect('parking_management:vehicle_list')
+
+    context = {
+        'vehicle': vehicle,
+        'price': price,
+    }
+    return render(request, 'parking_management/register_monthly_ticket_form.html', context)
+
+@login_required
+def monthly_sale_list_view(request):
+    # Lấy tất cả các giao dịch, và tối ưu câu lệnh query bằng select_related
+    # để tránh truy vấn CSDL nhiều lần trong template
+    sales = GhiNhanVeThang.objects.select_related(
+        'vehicle',
+        'vehicle__KhachThueID',
+        'vehicle__VehicleTypeID'
+    ).all()
+
+    context = {
+        'sales': sales
+    }
+    return render(request, 'parking_management/monthly_sale_list.html', context)

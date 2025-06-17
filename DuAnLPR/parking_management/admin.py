@@ -2,23 +2,9 @@ from django.contrib import admin
 from .models import KhachThue, VehicleTypes, Vehicle, MonthlyTicketRules, PerTurnTicketRules, ParkingHistory
 
 class VehicleAdmin(admin.ModelAdmin):
-    list_display = ('BienSoXe', 'KhachThueID', 'VehicleTypeID', 'HasMonthlyTicket') # Các trường hiển thị trong danh sách
-    list_filter = ('HasMonthlyTicket', 'VehicleTypeID', 'KhachThueID__HoVaTen') # Bộ lọc bên cạnh
-    search_fields = ('BienSoXe', 'KhachThueID__HoVaTen') # Trường tìm kiếm
-    list_editable = ('HasMonthlyTicket',) # Cho phép sửa trực tiếp HasMonthlyTicket từ danh sách
-    # Để list_editable hoạt động, trường đó cũng phải có trong list_display
-
-    # Nếu bạn muốn có action để set/unset HasMonthlyTicket cho nhiều xe cùng lúc
-    actions = ['mark_as_monthly_ticket', 'unmark_as_monthly_ticket']
-
-    def mark_as_monthly_ticket(self, request, queryset):
-        queryset.update(HasMonthlyTicket=True)
-    mark_as_monthly_ticket.short_description = "Đánh dấu là CÓ vé tháng"
-
-    def unmark_as_monthly_ticket(self, request, queryset):
-        queryset.update(HasMonthlyTicket=False)
-    unmark_as_monthly_ticket.short_description = "Bỏ đánh dấu vé tháng (KHÔNG)"
-
+    list_display = ('BienSoXe', 'KhachThueID', 'VehicleTypeID') # ĐÃ XÓA
+    list_filter = ('VehicleTypeID', 'KhachThueID__HoVaTen') # ĐÃ XÓA
+    search_fields = ('BienSoXe', 'KhachThueID__HoVaTen')
 class KhachThueAdmin(admin.ModelAdmin):
     list_display = ('HoVaTen', 'SoDienThoai', 'GioiTinh', 'NgaySinh')
     search_fields = ('HoVaTen', 'SoDienThoai')
