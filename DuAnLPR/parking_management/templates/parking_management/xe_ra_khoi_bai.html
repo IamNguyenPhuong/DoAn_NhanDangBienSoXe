@@ -103,12 +103,14 @@
                     {% if lich_su_gui_xe_hien_tai.VehicleID %}
                         <p>Loại xe: {{ lich_su_gui_xe_hien_tai.VehicleID.VehicleTypeID.TypeName }}</p>
                         <p>Tình trạng vé tháng:
-                            {% if lich_su_gui_xe_hien_tai.VehicleID.HasMonthlyTicket %}
-                                <span class="tag is-success">CÓ HIỆU LỰC</span>
-                            {% else %}
-                                <span class="tag is-warning">KHÔNG hoặc HẾT HẠN</span>
-                            {% endif %}
-                        </p>
+    {# ▼▼▼ THAY ĐỔI DÒNG IF BÊN DƯỚI ▼▼▼ #}
+    {% if lich_su_gui_xe_hien_tai.VehicleID.has_active_monthly_ticket %}
+    {# ▲▲▲ Sửa .HasMonthlyTicket thành .has_active_monthly_ticket ▲▲▲ #}
+        <span class="tag is-success">CÓ HIỆU LỰC</span>
+    {% else %}
+        <span class="tag is-warning">KHÔNG hoặc HẾT HẠN</span>
+    {% endif %}
+</p>
                     {% else %}
                          {% if lich_su_gui_xe_hien_tai.VehicleTypeID %}
                             <p>Loại xe: {{ lich_su_gui_xe_hien_tai.VehicleTypeID.TypeName }} (Khách vãng lai)</p>

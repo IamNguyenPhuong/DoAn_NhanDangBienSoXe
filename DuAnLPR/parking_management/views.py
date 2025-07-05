@@ -307,7 +307,6 @@ def xe_ra_khoi_bai_view(request):
     if request.method == 'POST':
         bien_so_nhap_tay = request.POST.get('bien_so_ra', '').strip().upper()
         exit_image_file = request.FILES.get('exit_image_upload')
-        # <--- THAY ĐỔI: Lấy lại đường dẫn ảnh đã lưu từ hidden input
         saved_path_from_hidden_input = request.POST.get('saved_exit_image_path')
 
         bien_so_final = ""
@@ -363,7 +362,7 @@ def xe_ra_khoi_bai_view(request):
                 phi_gui_xe = 0
                 rules_applied_info = []
 
-                if lich_su_dang_xu_ly.VehicleID and lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket:
+                if lich_su_dang_xu_ly.VehicleID and lich_su_dang_xu_ly.VehicleID.has_active_monthly_ticket:
                     lich_su_dang_xu_ly.WasMonthlyTicketUsed = True
                     context['thong_bao_thanh_cong'] = f"Xe {bien_so_final} của khách thuê sử dụng vé tháng. Cho xe ra."
                 else:
@@ -414,7 +413,7 @@ def xe_ra_khoi_bai_view(request):
                 else:
                     context['thong_bao_text'] = (f"Tìm thấy xe khách vãng lai {bien_so_final} đang trong bãi.")
                 context[
-                    'co_ve_thang'] = lich_su_dang_xu_ly.VehicleID.HasMonthlyTicket if lich_su_dang_xu_ly.VehicleID else False
+                    'co_ve_thang'] = lich_su_dang_xu_ly.VehicleID.has_active_monthly_ticket if lich_su_dang_xu_ly.VehicleID else False
                 context['thoi_gian_vao'] = lich_su_dang_xu_ly.EntryTime
         else:
             context['thong_bao_loi'] = f"Không tìm thấy xe có biển số '{bien_so_final}' đang trong bãi."

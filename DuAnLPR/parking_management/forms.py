@@ -1,8 +1,7 @@
-from django import forms
+
 from .models import KhachThue, Vehicle, VehicleTypes, MonthlyTicketRules, PerTurnTicketRules
 from datetime import datetime
 # iamnguyenphuong/doan_nhandangbiensoxe/DoAn_NhanDangBienSoXe-ac4235a7a896f4f8dcec6ccd0440928a26a33a93/DuAnLPR/parking_management/forms.py
-
 from django import forms
 from .models import KhachThue #, các model khác
 # ... các form khác
@@ -99,7 +98,7 @@ class PerTurnTicketRuleForm(forms.ModelForm):
             'TimeTo': forms.TimeInput(attrs={'class': 'input', 'type': 'time', 'placeholder': 'HH:MM'}),
         }
         help_texts = {
-            'ShiftName': 'Nếu không nhập Tên Ca, Giờ Bắt Đầu và Giờ Kết Thúc, quy tắc này có thể được coi là giá cố định cho cả ngày (cần logic xử lý riêng trong view nếu muốn).',
+            'ShiftName': 'Nếu không nhập Tên Ca, Giờ Bắt Đầu và Giờ Kết Thúc, quy tắc này có thể được coi là giá cố định cho cả ngày',
             'TimeFrom': 'Để trống nếu không áp dụng theo giờ cụ thể.',
             'TimeTo': 'Để trống nếu không áp dụng theo giờ cụ thể.',
         }

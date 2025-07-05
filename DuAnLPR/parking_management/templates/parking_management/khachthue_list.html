@@ -26,6 +26,7 @@
                     <th>Giới Tính</th>
                     <th>Số Điện Thoại</th>
                     <th>Hành động</th>
+
                 </tr>
             </thead>
             <tbody>
@@ -39,8 +40,9 @@
                     <td>
                         <a href="{% url 'parking_management:khachthue_update' kt.KhachThueID %}" class="button is-small is-info">Sửa</a>
                         <a href="{% url 'parking_management:khachthue_delete' kt.KhachThueID %}" class="button is-small is-danger">Xóa</a>
-                        {# Thêm link xem danh sách xe của khách thuê này sau #}
+
                     </td>
+
                 </tr>
                 {% endfor %}
             </tbody>

@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
-LANGUAGE_CODE = 'vi-vn'  # Đặt mã ngôn ngữ là tiếng Việt
+LANGUAGE_CODE = 'en-us'  # Đặt mã ngôn ngữ là tiếng Việt
 
 TIME_ZONE = 'Asia/Ho_Chi_Minh' # Đây là múi giờ cho Việt Nam (GMT+7)
 
@@ -11,7 +11,7 @@ USE_I18N = True
 USE_L10N = True # Django 4.0 trở lên dùng USE_L10N, nếu bạn dùng Django cũ hơn có thể là USE_TZ
 
 USE_TZ = True # Rất quan trọng: Bật hỗ trợ múi giờ trong Django
-
+USE_THOUSAND_SEPARATOR = True
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 LOGIN_URL = 'parking_management:login_user' # URL sẽ chuyển hướng đến nếu người dùng chưa đăng nhập và cố truy cập trang yêu cầu đăng nhập

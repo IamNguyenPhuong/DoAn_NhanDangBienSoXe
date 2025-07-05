@@ -1,12 +1,12 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
-from django.utils import timezone # Thêm import này
+from django.utils import timezone
 
 # Hàm kiểm tra số điện thoạ
 phone_regex = RegexValidator(
-    regex=r'^\d{10}$',
-    message="Số điện thoại phải có đúng 10 chữ số."
+    regex=r'^0\d{9}$',
+    message="Số điện thoại phải bắt đầu bằng số 0 và có đủ 10 chữ số."
 )
 
 # 1. Bảng Admin - Chúng ta sẽ sử dụng hệ thống User tích hợp của Django sau này
@@ -28,7 +28,8 @@ class KhachThue(models.Model):
     # Bỏ null=True, blank=True và thêm validators
     SoDienThoai = models.CharField(
         max_length=10,  # Giới hạn độ dài trong CSDL là 10
-        validators=[phone_regex]  # Áp dụng quy tắc kiểm tra
+        validators=[phone_regex],  # Áp dụng quy tắc kiểm tra
+        unique = True
     )
 
     def __str__(self):
@@ -54,15 +55,31 @@ class VehicleTypes(models.Model):
 class Vehicle(models.Model):
     VehicleID = models.AutoField(primary_key=True)
     KhachThueID = models.ForeignKey(KhachThue, on_delete=models.CASCADE)
-    BienSoXe = models.CharField(max_length=50, unique=True)
     VehicleTypeID = models.ForeignKey(VehicleTypes, on_delete=models.RESTRICT)
+    BienSoXe = models.CharField(max_length=15, unique=True, verbose_name="Biển số xe")
 
 
     def __str__(self):
-        return self.BienSoXe
+        return f"{self.BienSoXe} - {self.KhachThueID.HoVaTen}"
 
     class Meta:
-        db_table = 'Vehicle'
+        db_table = 'vehicle'
+        verbose_name = "Xe"
+        verbose_name_plural = "Quản lý xe"
+
+
+    @property
+    def has_active_monthly_ticket(self):
+        """
+        Phương thức kiểm tra xem xe này có vé tháng nào đang còn hiệu lực hay không.
+        Trả về True nếu có, False nếu không.
+        """
+        today = timezone.now().date()
+        # Dùng .exists() để tối ưu, chỉ cần biết có tồn tại hay không, không cần lấy dữ liệu
+        # Dòng dưới đây đã được sửa lại để truy vấn đúng cách
+        return GhiNhanVeThang.objects.filter(vehicle=self, expiry_date__gte=today).exists()
+
+
 
 
 # 5. Bảng MonthlyTicketRules (Quy Tắc Giá Vé Tháng)

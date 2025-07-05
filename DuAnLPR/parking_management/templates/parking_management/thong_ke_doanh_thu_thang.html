@@ -6,28 +6,32 @@
 {% block content %}
 <section class="section">
     <div class="container">
-        <h1 class="title">Thống kê Doanh thu Tháng</h1>
+        <h1 class="title">Thống Kê Doanh Thu Tháng</h1>
 
-        <form method="get" class="mb-5">
-            <div class="field has-addons">
-                <div class="control">
-                    <div class="select">
-                        {{ form.selected_month }}
-                    </div>
-                </div>
-                <div class="control">
-                    <div class="select">
-                        {{ form.selected_year }}
-                    </div>
-                </div>
-                <div class="control">
-                    <button class="button is-link">Xem</button>
+     <form method="get" class="mb-5">
+    <div class="field is-grouped">
+        <label class="label control is-size-5" style="margin-right: 1em; align-self: center;">Chọn thời gian:</label>
+        <div class="field has-addons">
+            <div class="control">
+                <div class="select">
+                    {{ form.selected_month }}
                 </div>
             </div>
-        </form>
+            <div class="control">
+                <div class="select">
+                    {{ form.selected_year }}
+                </div>
+            </div>
+            <div class="control">
+                <button class="button is-info">Xem</button>
+            </div>
+        </div>
+
+    </div>
+</form>
 
         {% if selected_year and selected_month %}
-            <h2 class="subtitle">Báo cáo doanh thu tháng {{ selected_month }}/{{ selected_year }}</h2>
+            <h2 class="subtitle">Báo cáo doanh thu tháng {{ selected_month }}/{{ selected_year|stringformat:"d" }}</h2>
             <div class="box">
                 <div class="table-container">
                     <table class="table is-bordered is-striped is-hoverable is-fullwidth">
